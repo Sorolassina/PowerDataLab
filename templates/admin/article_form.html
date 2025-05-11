@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}{% if article %}Modifier l'article{% else %}Nouvel article{% endif %} - PowerDataLab{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-sidebar">
+        <ul class="admin-menu">
+            <li><a href="{{ url_for('admin') }}"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
+            <li><a href="{{ url_for('manage_articles') }}" class="active"><i class="fas fa-list"></i> Gérer les articles</a></li>
+            <li><a href="{{ url_for('manage_comments') }}"><i class="fas fa-comments"></i> Commentaires</a></li>
+            <li><a href="{{ url_for('manage_newsletter') }}"><i class="fas fa-envelope"></i> Newsletter</a></li>
+        </ul>
+    </div>
+
+    <div class="admin-content">
+        <h1>{% if article %}Modifier l'article{% else %}Nouvel article{% endif %}</h1>
+        
+        <form method="POST" enctype="multipart/form-data" class="article-form">
+            <div class="form-group">
+                <label for="title">Titre</label>
+                <input type="text" class="form-control" id="title" name="title" value="{{ article.title if article else '' }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="content">Contenu</label>
+                <textarea class="form-control" id="content" name="content" rows="10" required>{{ article.content if article else '' }}</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="category_id">Catégorie</label>
+                <select class="form-control" id="category_id" name="category_id" required>
+                    <option value="">Sélectionner une catégorie</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if article and article.category_id == category.id %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="images">Images</label>
+                <input type="file" class="form-control-file" id="images" name="images" accept="image/*" multiple>
+                <small class="form-text text-muted">Vous pouvez sélectionner plusieurs images. Formats acceptés : PNG, JPG, JPEG, GIF</small>
+                
+                {% if article and article.image_path %}
+                <div class="current-images mt-3">
+                    <h5>Images actuelles :</h5>
+                    <div class="image-gallery" id="sortable-gallery">
+                        {% for image_path in article.image_path.split(',') if image_path.strip() %}
+                        <div class="image-item" data-path="{{ image_path }}">
+                            <img src="{{ url_for('static', filename=image_path) }}" alt="Image de l'article">
+                            <button type="button" class="btn btn-danger btn-sm remove-image" data-path="{{ image_path }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <div class="image-handle">
+                                <i class="fas fa-grip-vertical"></i>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" name="existing_images" id="existing-images" value="{{ article.image_path }}">
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> {% if article %}Mettre à jour{% else %}Créer{% endif %}
+                </button>
+                <a href="{{ url_for('manage_articles') }}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Annuler
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<style>
+.admin-container {
+    display: flex;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.admin-sidebar {
+    width: 250px;
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.admin-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.admin-menu li {
+    margin-bottom: 0.5rem;
+}
+
+.admin-menu a {
+    display: block;
+    padding: 0.75rem 1rem;
+    color: #333;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.admin-menu a:hover,
+.admin-menu a.active {
+    background: #007bff;
+    color: white;
+}
+
+.admin-menu i {
+    margin-right: 0.5rem;
+    width: 20px;
+    text-align: center;
+}
+
+.admin-content {
+    flex: 1;
+}
+
+.article-form {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    max-width: 100%;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.tox-tinymce {
+    border-radius: 4px !important;
+}
+
+.current-images {
+    margin-top: 1rem;
+}
+
+.image-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.image-item {
+    position: relative;
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: move;
+}
+
+.image-item img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+}
+
+.image-item .remove-image {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.image-item:hover .remove-image {
+    opacity: 1;
+}
+
+.image-handle {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 0.25rem;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.image-item:hover .image-handle {
+    opacity: 1;
+}
+
+.image-item.sortable-ghost {
+    opacity: 0.5;
+}
+
+.image-item.sortable-chosen {
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+.form-text {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="https://cdn.tiny.cloud/1/vqiw054507d4x8ru2undrh2vxuscjkzrgnf6dt3mfvz1ub68/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialiser Sortable pour la galerie d'images
+    const gallery = document.getElementById('sortable-gallery');
+    if (gallery) {
+        new Sortable(gallery, {
+            animation: 150,
+            handle: '.image-handle',
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            onEnd: function() {
+                // Mettre à jour l'ordre des images dans le champ caché
+                const images = Array.from(gallery.getElementsByClassName('image-item'))
+                    .map(item => item.dataset.path);
+                document.getElementById('existing-images').value = images.join(',');
+            }
+        });
+    }
+
+    // Initialiser TinyMCE pour l'éditeur de contenu
+    tinymce.init({
+        selector: '#content',
+        plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
+        toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
+        height: 500,
+        menubar: true,
+        language: 'fr_FR',
+        images_upload_url: '{{ url_for("upload_image") }}',
+        automatic_uploads: true,
+        file_picker_types: 'image',
+        images_reuse_filename: true,
+        setup: function(editor) {
+            editor.on('change', function() {
+                editor.save();
+            });
+        }
+    });
+
+    // Gérer la suppression d'images
+    document.querySelectorAll('.remove-image').forEach(button => {
+        button.addEventListener('click', function() {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette image ?')) {
+                const imagePath = this.dataset.path;
+                const existingImages = document.getElementById('existing-images').value.split(',');
+                const newImages = existingImages.filter(path => path !== imagePath);
+                document.getElementById('existing-images').value = newImages.join(',');
+                this.closest('.image-item').remove();
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

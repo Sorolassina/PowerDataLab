@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="fr" class="d-flex flex-column min-vh-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PowerDataLab{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+    /* Styles globaux qui s'appliquent à toutes les pages */
+    body {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .main-content {
+        flex: 1 0 auto;
+        padding-top: 0;
+    }
+
+    .footer {
+        flex-shrink: 0;
+        border-top: 1px solid #dee2e6;
+        font-size: 0.9rem;
+        padding: 0.5rem 0;
+    }
+
+    .footer p {
+        margin: 0;
+        text-align: center;
+    }
+
+    .category-badge {
+        text-decoration: none;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        color: white;
+        margin: 0 0.5rem;
+    }
+
+    .category-badge[data-color] {
+        background-color: var(--category-color);
+    }
+
+    .navbar-nav .nav-item {
+        margin: 0 0.25rem;
+    }
+
+    .navbar-nav .nav-link {
+        white-space: nowrap;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .navbar-nav {
+        flex-wrap: nowrap;
+    }
+
+    .header-content {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .category-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .category-image {
+        max-width: 150px;
+        height: auto;
+        margin-bottom: 1rem;
+    }
+
+    .article-header {
+        text-align: center;
+    }
+
+    .article-meta {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .article-meta span {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .category-link {
+        text-decoration: none;
+    }
+
+    .category-link:hover {
+        opacity: 0.9;
+    }
+
+    .site-header {
+        text-align: center;
+        padding: 2rem 0;
+    }
+
+    .header-logo {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        margin-bottom: 1rem;
+        border: 3px solid #fff;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+
+    .site-header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        color: #333;
+    }
+
+    .site-header .lead {
+        font-size: 1.2rem;
+        color: #666;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    
+
+    .header-content {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+
+    :root {
+        --category-color: #007bff; /* Couleur par défaut */
+    }
+
+    .navbar {
+        background-color: var(--category-color);
+    }
+
+    .btn-primary {
+        background-color: var(--category-color);
+        border-color: var(--category-color);
+    }
+
+    .btn-primary:hover {
+        background-color: var(--category-color);
+        border-color: var(--category-color);
+        filter: brightness(90%);
+    }
+
+    .text-primary {
+        color: var(--category-color) !important;
+    }
+
+    .border-primary {
+        border-color: var(--category-color) !important;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 0.75rem !important;
+        padding: 0.75rem 0 !important;
+        background: linear-gradient(to right, #f8f9fa, #e9ecef);
+        border-bottom: 1px solid #dee2e6;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        backdrop-filter: blur(5px);
+        background-color: rgba(248, 249, 250, 0.95);
+    }
+
+    .container.mt-4 {
+        margin-top: 0 !important;
+    }
+
+    /* Ajustement pour la sidebar des catégories */
+    .categories-sidebar {
+        position: sticky;
+        top: calc(2rem + 60px); /* Ajusté pour tenir compte du page-header */
+    }
+
+    </style>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Récupérer la catégorie active depuis l'URL
+        const path = window.location.pathname;
+        if (path.startsWith('/category/')) {
+            const categorySlug = path.split('/').pop();
+            // Récupérer la couleur de la catégorie
+            fetch(`/api/category-color/${categorySlug}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.color) {
+                        document.documentElement.style.setProperty('--category-color', data.color);
+                    }
+                })
+                .catch(error => console.error('Erreur:', error));
+        }
+    });
+    </script>
+    <!-- Les templates enfants (comme article.html, blog.html, etc.) peuvent définir leur propre contenu pour ce bloc en utilisant : -->
+    {% block extra_css %}
+    {% endblock %}
+</head>
+<body class="{% if request.endpoint == 'category' %}category-theme{% endif %}">
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <div class="d-flex align-items-center">
+                <img src="{{ url_for('static', filename='image/Profil.jpg') }}" alt="Profile" class="profile-picture me-3">
+                <a class="navbar-brand" href="{{ url_for('index') }}">PowerDataLab</a>
+            </div>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">Accueil</a>
+                    </li>
+                    {% for category in categories %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('category', slug=category.slug) }}">
+                            {{ category.name }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('about') }}">À propos</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.is_admin %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">Administration</a>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('logout') }}">Déconnexion</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">Connexion</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('register') }}">Inscription</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="container mt-4">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% block header %}
+            <div class="page-header">
+                <div class="header-content">
+                    {% if request.endpoint == 'category' %}
+                        <div class="category-header">
+                            {% if category.slug == 'power-bi' %}
+                                <img src="{{ url_for('static', filename='image/PowerBi.png') }}" 
+                                     alt="{{ category.name }}" 
+                                     class="category-image">
+                            {% elif category.slug == 'power-apps' %}
+                                <img src="{{ url_for('static', filename='image/PowerApps.png') }}" 
+                                     alt="{{ category.name }}" 
+                                     class="category-image">
+                            {% elif category.slug == 'power-automate' %}
+                                <img src="{{ url_for('static', filename='image/PowerAutomate.png') }}" 
+                                     alt="{{ category.name }}" 
+                                     class="category-image">
+                            {% elif category.slug == 'power-virtual-agents' %}
+                                <img src="{{ url_for('static', filename='image/AI.png') }}" 
+                                     alt="{{ category.name }}" 
+                                     class="category-image">
+                            {% elif category.slug == 'sharepoint' %}
+                                <img src="{{ url_for('static', filename='image/SharePoint.png') }}" 
+                                     alt="{{ category.name }}" 
+                                     class="category-image">
+                            {% endif %}
+                            <div>
+                                <h1>{{ category.name }}</h1>
+                                {% if category.description %}
+                                <p class="lead">{{ category.description }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% elif request.endpoint == 'article' %}
+                        <div class="article-header">
+                            <h1>{{ article.title }}</h1>
+                            <div class="article-meta">
+                                <span class="article-author">
+                                    <i class="fas fa-user"></i> {{ article.author_name }}
+                                </span>
+                                <span class="article-date">
+                                    <i class="fas fa-calendar"></i> {{ article.created_at_formatted }}
+                                </span>
+                                <span class="article-category">
+                                    <i class="fas fa-folder"></i> 
+                                    <a href="{{ url_for('category', slug=article.category_slug) }}" class="category-link category-badge" data-color="{{ article.color_theme }}">
+                                        {{ article.category_name }}
+                                    </a>
+                                </span>
+                            </div>
+                        </div>
+                    {% else %}
+                        <h1>{% block page_title %}{% endblock %}</h1>
+                    {% endif %}
+                </div>
+            </div>
+            {% endblock %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <footer class="footer bg-light">
+        <div class="container">
+            <p class="text-muted">© 2025 PowerDataLab. Tous droits réservés. soro wangboho lassina</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

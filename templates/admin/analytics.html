@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Analytics</h1>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+        </a>
+    </div>
+
+    <!-- Statistiques générales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Vues totales</h5>
+                    <h2 class="display-4">{{ total_views }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Visiteurs uniques</h5>
+                    <h2 class="display-4">{{ unique_visitors }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Visites aujourd'hui</h5>
+                    <h2 class="display-4">{{ today_views }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Visites cette semaine</h5>
+                    <h2 class="display-4">{{ week_views }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphique des visites des 7 derniers jours -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Visites des 7 derniers jours</h5>
+            <canvas id="visitsChart"></canvas>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Statistiques par page -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Vues par page</h5>
+                    <canvas id="pagesChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistiques des navigateurs -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Navigateurs</h5>
+                    <canvas id="browsersChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sources de trafic -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Sources de trafic</h5>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Source</th>
+                            <th>Nombre de visites</th>
+                            <th>% du trafic</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for source, count in referrer_stats %}
+                        <tr>
+                            <td>{{ source }}</td>
+                            <td>{{ count }}</td>
+                            <td>{{ ((count|int) / (total_views|int) * 100)|round(1) }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Articles les plus vus -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Articles les plus vus</h5>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Article</th>
+                            <th>Vues</th>
+                            <th>% des vues</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for article in top_articles %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('article', slug=article.slug) }}">
+                                    {{ article.title }}
+                                </a>
+                            </td>
+                            <td>{{ article.views }}</td>
+                            <td>{{ ((article.views|int) / (total_views|int) * 100)|round(1) }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Catégories les plus vues -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Catégories les plus vues</h5>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Catégorie</th>
+                            <th>Vues</th>
+                            <th>% des vues</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in top_categories %}
+                        <tr>
+                            <td>
+                                <span class="badge" data-color="{{ category.color_theme }}">
+                                    {{ category.name }}
+                                </span>
+                            </td>
+                            <td>{{ category.views }}</td>
+                            <td>{{ ((category.views|int) / (total_views|int) * 100)|round(1) }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Données pour les graphiques -->
+<script>
+// Données des visites quotidiennes
+const dailyStats = {
+    labels: {{ daily_stats|map(attribute='date')|list|tojson }},
+    views: {{ daily_stats|map(attribute='views')|list|tojson }}
+};
+
+// Données des pages
+const pageStats = {
+    labels: {{ page_stats|map(attribute='page')|list|tojson }},
+    views: {{ page_stats|map(attribute='views')|list|tojson }}
+};
+
+// Données des navigateurs
+const browserStats = {
+    labels: {{ browser_stats|map(attribute='browser')|list|tojson }},
+    counts: {{ browser_stats|map(attribute='count')|list|tojson }}
+};
+
+// Configuration des graphiques
+document.addEventListener('DOMContentLoaded', function() {
+    // Graphique des visites quotidiennes
+    new Chart(
+        document.getElementById('visitsChart'),
+        {
+            type: 'line',
+            data: {
+                labels: dailyStats.labels,
+                datasets: [{
+                    label: 'Visites',
+                    data: dailyStats.views,
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1,
+                    fill: true,
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Évolution des visites'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        }
+    );
+
+    // Graphique des pages
+    new Chart(
+        document.getElementById('pagesChart'),
+        {
+            type: 'pie',
+            data: {
+                labels: pageStats.labels,
+                datasets: [{
+                    data: pageStats.views,
+                    backgroundColor: [
+                        'rgb(255, 99, 132)',
+                        'rgb(54, 162, 235)',
+                        'rgb(255, 205, 86)',
+                        'rgb(75, 192, 192)',
+                        'rgb(153, 102, 255)',
+                        'rgb(255, 159, 64)'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Répartition des vues par page'
+                    }
+                }
+            }
+        }
+    );
+
+    // Graphique des navigateurs
+    new Chart(
+        document.getElementById('browsersChart'),
+        {
+            type: 'pie',
+            data: {
+                labels: browserStats.labels,
+                datasets: [{
+                    data: browserStats.counts,
+                    backgroundColor: [
+                        'rgb(255, 99, 132)',
+                        'rgb(54, 162, 235)',
+                        'rgb(255, 205, 86)',
+                        'rgb(75, 192, 192)',
+                        'rgb(153, 102, 255)',
+                        'rgb(255, 159, 64)'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Répartition par navigateur'
+                    }
+                }
+            }
+        }
+    );
+
+    // Appliquer les couleurs des badges
+    document.querySelectorAll('.badge[data-color]').forEach(function(element) {
+        element.style.backgroundColor = element.dataset.color;
+    });
+});
+</script>
+{% endblock %} 

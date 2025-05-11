@@ -1,0 +1,610 @@
+{% extends "base.html" %}
+
+{% block title %}Gérer la newsletter - PowerDataLab{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-sidebar">
+        <ul class="admin-menu">
+            <li><a href="{{ url_for('admin') }}"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
+            <li><a href="{{ url_for('manage_articles') }}"><i class="fas fa-list"></i> Gérer les articles</a></li>
+            <li><a href="{{ url_for('create_article') }}"><i class="fas fa-plus"></i> Créer un article</a></li>
+            <li><a href="{{ url_for('manage_comments') }}"><i class="fas fa-comments"></i> Commentaires</a></li>
+            <li><a href="{{ url_for('manage_users') }}"><i class="fas fa-users"></i> Utilisateurs</a></li>
+            <li><a href="{{ url_for('manage_newsletter') }}" class="active"><i class="fas fa-envelope"></i> Newsletter</a></li>
+        </ul>
+    </div>
+
+    <div class="admin-content">
+        <h1>Gérer la newsletter</h1>
+        
+        <div class="newsletter-actions">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#sendNewsletterModal">
+                <i class="fas fa-paper-plane"></i> Envoyer une newsletter
+            </button>
+            {% if newsletter %}
+            <a href="{{ url_for('edit_newsletter', newsletter_id=newsletter.id) }}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Modifier la dernière newsletter
+            </a>
+            {% endif %}
+            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#importSubscribersModal">
+                <i class="fas fa-file-import"></i> Importer des abonnés
+            </button>
+            <a href="{{ url_for('export_subscribers') }}" class="btn btn-info">
+                <i class="fas fa-file-export"></i> Exporter les abonnés
+            </a>
+        </div>
+
+        <!-- Historique des newsletters -->
+        <div class="newsletter-history">
+            <h2>Historique des newsletters</h2>
+            {% if newsletter_history %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date d'envoi</th>
+                            <th>Sujet</th>
+                            <th>Expéditeur</th>
+                            <th>Destinataires</th>
+                            <th>Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for newsletter in newsletter_history %}
+                        <tr>
+                            <td>{{ newsletter.sent_at_formatted }}</td>
+                            <td>{{ newsletter.subject }}</td>
+                            <td>{{ newsletter.sender_name }}</td>
+                            <td>{{ newsletter.recipient_count }} destinataire(s)</td>
+                            <td>
+                                {% if newsletter.test_send %}
+                                <span class="badge bg-info">Test</span>
+                                {% else %}
+                                <span class="badge bg-primary">Envoi</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="viewNewsletterContent({{ newsletter.id }})">
+                                    <i class="fas fa-eye"></i> Voir le contenu
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                Aucune newsletter n'a été envoyée pour le moment.
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="subscribers-list">
+            {% for subscriber in subscribers.items %}
+            <div class="subscriber-card" data-subscriber-id="{{ subscriber.id }}">
+                <div class="subscriber-header">
+                    <div class="subscriber-info">
+                        <h3>{{ subscriber.email }}</h3>
+                        <span class="subscriber-status {{ subscriber.status }}">
+                            {{ subscriber.status }}
+                        </span>
+                    </div>
+                    <div class="subscriber-actions">
+                        {% if subscriber.status == 'active' %}
+                        <button type="button" class="btn btn-warning btn-sm" onclick="toggleSubscriberStatus({{ subscriber.id }}, 'unsubscribe')">
+                            <i class="fas fa-ban"></i> Désabonner
+                        </button>
+                        {% else %}
+                        <button type="button" class="btn btn-success btn-sm" onclick="toggleSubscriberStatus({{ subscriber.id }}, 'resubscribe')">
+                            <i class="fas fa-check"></i> Réabonner
+                        </button>
+                        {% endif %}
+                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteSubscriber({{ subscriber.id }})">
+                            <i class="fas fa-trash"></i> Supprimer
+                        </button>
+                    </div>
+                </div>
+                <div class="subscriber-meta">
+                    <span><i class="fas fa-calendar"></i> Inscrit le {{ subscriber.subscribed_at_formatted }}</span>
+                    {% if subscriber.last_newsletter %}
+                    <span><i class="fas fa-envelope"></i> Dernière newsletter : {{ subscriber.last_newsletter_formatted }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+            {% if subscribers.has_prev %}
+            <a href="{{ url_for('manage_newsletter', page=subscribers.prev_num) }}" class="btn btn-secondary">
+                <i class="fas fa-chevron-left"></i> Précédent
+            </a>
+            {% endif %}
+
+            <span class="current-page">
+                Page {{ subscribers.page }} sur {{ subscribers.pages }}
+            </span>
+
+            {% if subscribers.has_next %}
+            <a href="{{ url_for('manage_newsletter', page=subscribers.next_num) }}" class="btn btn-secondary">
+                Suivant <i class="fas fa-chevron-right"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour envoyer une newsletter -->
+<div class="modal fade" id="sendNewsletterModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Envoyer une newsletter</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="sendNewsletterForm">
+                    <div class="mb-3">
+                        <label for="subject" class="form-label">Sujet</label>
+                        <input type="text" class="form-control" id="subject" name="subject" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="content" class="form-label">Contenu</label>
+                        <textarea class="form-control" id="content" name="content" rows="5" required></textarea>
+                    </div>
+                    
+                    <!-- Nouvelle section pour la sélection des destinataires -->
+                    <div class="mb-3">
+                        <label class="form-label">Destinataires</label>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="recipient_type" id="allSubscribers" value="all" checked>
+                            <label class="form-check-label" for="allSubscribers">
+                                Tous les abonnés actifs
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="recipient_type" id="selectedSubscribers" value="selected">
+                            <label class="form-check-label" for="selectedSubscribers">
+                                Sélectionner des abonnés
+                            </label>
+                        </div>
+                        
+                        <!-- Liste des abonnés à sélectionner -->
+                        <div id="subscribersList" class="subscribers-selection" style="display: none; max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px; padding: 1rem; margin-top: 1rem;">
+                            {% for subscriber in subscribers.items %}
+                            <div class="form-check">
+                                <input class="form-check-input subscriber-checkbox" type="checkbox" name="subscribers[]" value="{{ subscriber.id }}" id="subscriber{{ subscriber.id }}" {% if subscriber.status != 'active' %}disabled{% endif %}>
+                                <label class="form-check-label" for="subscriber{{ subscriber.id }}">
+                                    {{ subscriber.email }}
+                                    {% if subscriber.status != 'active' %}
+                                    <span class="badge bg-secondary">Inactif</span>
+                                    {% endif %}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Articles à inclure</label>
+                        <div class="articles-list">
+                            {% for article in recent_articles %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="articles[]" value="{{ article.id }}" id="article{{ article.id }}">
+                                <label class="form-check-label" for="article{{ article.id }}">
+                                    {{ article.title }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="testSend" name="test_send">
+                        <label class="form-check-label" for="testSend">
+                            Envoyer un test à mon adresse email
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="sendNewsletter()">Envoyer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour importer des abonnés -->
+<div class="modal fade" id="importSubscribersModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Importer des abonnés</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="importSubscribersForm">
+                    <div class="mb-3">
+                        <label for="importFile" class="form-label">Fichier CSV</label>
+                        <input type="file" class="form-control" id="importFile" name="importFile" accept=".csv" required>
+                        <div class="form-text">Le fichier doit contenir une colonne "email"</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="importSubscribers()">Importer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour voir le contenu d'une newsletter -->
+<div class="modal fade" id="viewNewsletterModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Contenu de la newsletter</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="newsletterContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.admin-container {
+    display: flex;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.admin-sidebar {
+    width: 250px;
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.admin-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.admin-menu li {
+    margin-bottom: 0.5rem;
+}
+
+.admin-menu a {
+    display: block;
+    padding: 0.75rem 1rem;
+    color: #333;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.admin-menu a:hover,
+.admin-menu a.active {
+    background: #007bff;
+    color: white;
+}
+
+.admin-menu i {
+    margin-right: 0.5rem;
+    width: 20px;
+    text-align: center;
+}
+
+.admin-content {
+    flex: 1;
+}
+
+.newsletter-actions {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.newsletter-history {
+    margin-bottom: 2rem;
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.newsletter-history h2 {
+    margin-bottom: 1.5rem;
+    color: #333;
+    font-size: 1.5rem;
+}
+
+.table th {
+    background-color: #f8f9fa;
+}
+
+.badge {
+    font-size: 0.85rem;
+    padding: 0.35em 0.65em;
+}
+
+#newsletterContent {
+    white-space: pre-wrap;
+    font-family: inherit;
+}
+
+.subscribers-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.subscriber-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.subscriber-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.subscriber-info h3 {
+    margin: 0;
+    color: #333;
+}
+
+.subscriber-status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.subscriber-status.active {
+    background: #28a745;
+    color: white;
+}
+
+.subscriber-status.unsubscribed {
+    background: #dc3545;
+    color: white;
+}
+
+.subscriber-meta {
+    color: #666;
+    font-size: 0.9rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.current-page {
+    color: #666;
+}
+
+.articles-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 1rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function deleteSubscriber(subscriberId) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cet abonné ?')) {
+        fetch(`/admin/newsletter/subscribers/${subscriberId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Supprimer la carte de l'abonné sans recharger la page
+                const subscriberCard = document.querySelector(`.subscriber-card[data-subscriber-id="${subscriberId}"]`);
+                if (subscriberCard) {
+                    subscriberCard.remove();
+                } else {
+                    // Si on ne trouve pas la carte, recharger la page
+                    window.location.reload();
+                }
+            } else {
+                alert(data.message || 'Erreur lors de la suppression de l\'abonné');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la suppression de l\'abonné');
+        });
+    }
+}
+
+function toggleSubscriberStatus(subscriberId, action) {
+    fetch(`/admin/newsletter/subscribers/${subscriberId}/${action}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Mettre à jour le statut sans recharger la page
+            const subscriberCard = document.querySelector(`.subscriber-card[data-subscriber-id="${subscriberId}"]`);
+            if (subscriberCard) {
+                const statusSpan = subscriberCard.querySelector('.subscriber-status');
+                const toggleButton = subscriberCard.querySelector('.subscriber-actions button');
+                
+                if (action === 'unsubscribe') {
+                    statusSpan.textContent = 'inactive';
+                    statusSpan.className = 'subscriber-status inactive';
+                    toggleButton.className = 'btn btn-success btn-sm';
+                    toggleButton.innerHTML = '<i class="fas fa-check"></i> Réabonner';
+                    toggleButton.onclick = () => toggleSubscriberStatus(subscriberId, 'resubscribe');
+                } else {
+                    statusSpan.textContent = 'active';
+                    statusSpan.className = 'subscriber-status active';
+                    toggleButton.className = 'btn btn-warning btn-sm';
+                    toggleButton.innerHTML = '<i class="fas fa-ban"></i> Désabonner';
+                    toggleButton.onclick = () => toggleSubscriberStatus(subscriberId, 'unsubscribe');
+                }
+            } else {
+                // Si on ne trouve pas la carte, recharger la page
+                window.location.reload();
+            }
+        } else {
+            alert(data.message || 'Erreur lors du changement de statut de l\'abonné');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur lors du changement de statut de l\'abonné');
+    });
+}
+
+// Ajouter la gestion de l'affichage de la liste des abonnés
+document.addEventListener('DOMContentLoaded', function() {
+    const allSubscribersRadio = document.getElementById('allSubscribers');
+    const selectedSubscribersRadio = document.getElementById('selectedSubscribers');
+    const subscribersList = document.getElementById('subscribersList');
+    const subscriberCheckboxes = document.querySelectorAll('.subscriber-checkbox');
+
+    function updateSubscribersList() {
+        if (selectedSubscribersRadio.checked) {
+            subscribersList.style.display = 'block';
+        } else {
+            subscribersList.style.display = 'none';
+            // Décocher toutes les cases
+            subscriberCheckboxes.forEach(checkbox => checkbox.checked = false);
+        }
+    }
+
+    allSubscribersRadio.addEventListener('change', updateSubscribersList);
+    selectedSubscribersRadio.addEventListener('change', updateSubscribersList);
+});
+
+function sendNewsletter() {
+    const form = document.getElementById('sendNewsletterForm');
+    const formData = new FormData(form);
+    
+    // Récupérer le type de destinataires
+    const recipientType = formData.get('recipient_type');
+    let subscribers = [];
+    
+    if (recipientType === 'selected') {
+        // Récupérer les IDs des abonnés sélectionnés
+        subscribers = Array.from(formData.getAll('subscribers[]')).map(id => parseInt(id));
+        if (subscribers.length === 0) {
+            alert('Veuillez sélectionner au moins un destinataire');
+            return;
+        }
+    }
+    
+    // Convertir FormData en objet JSON
+    const data = {
+        subject: formData.get('subject'),
+        content: formData.get('content'),
+        test_send: formData.get('test_send') === 'on',
+        articles: Array.from(formData.getAll('articles[]')).map(id => parseInt(id)),
+        recipient_type: recipientType,
+        subscribers: subscribers
+    };
+    
+    fetch('/admin/newsletter/send', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Fermer le modal
+            bootstrap.Modal.getInstance(document.getElementById('sendNewsletterModal')).hide();
+            alert('Newsletter envoyée avec succès !');
+            // Recharger la page pour afficher la nouvelle newsletter dans l'historique
+            window.location.reload();
+        } else {
+            alert(data.message || 'Erreur lors de l\'envoi de la newsletter');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur lors de l\'envoi de la newsletter');
+    });
+}
+
+function importSubscribers() {
+    const form = document.getElementById('importSubscribersForm');
+    const formData = new FormData(form);
+    
+    fetch('/admin/newsletter/import', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Fermer le modal
+            bootstrap.Modal.getInstance(document.getElementById('importSubscribersModal')).hide();
+            alert('Abonnés importés avec succès !');
+            // Recharger la page pour afficher les nouveaux abonnés
+            window.location.reload();
+        } else {
+            alert(data.message || 'Erreur lors de l\'import des abonnés');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur lors de l\'import des abonnés');
+    });
+}
+
+function viewNewsletterContent(newsletterId) {
+    fetch(`/admin/newsletter/${newsletterId}/content`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('newsletterContent').innerHTML = data.content;
+                new bootstrap.Modal(document.getElementById('viewNewsletterModal')).show();
+            } else {
+                alert('Erreur lors de la récupération du contenu de la newsletter');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la récupération du contenu de la newsletter');
+        });
+}
+</script>
+{% endblock %} 

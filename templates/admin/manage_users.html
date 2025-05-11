@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Gérer les utilisateurs - PowerDataLab{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-sidebar">
+        <ul class="admin-menu">
+            <li><a href="{{ url_for('admin') }}"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
+            <li><a href="{{ url_for('manage_articles') }}"><i class="fas fa-list"></i> Gérer les articles</a></li>
+            <li><a href="{{ url_for('create_article') }}"><i class="fas fa-plus"></i> Créer un article</a></li>
+            <li><a href="{{ url_for('manage_comments') }}"><i class="fas fa-comments"></i> Commentaires</a></li>
+            <li><a href="{{ url_for('manage_users') }}" class="active"><i class="fas fa-users"></i> Utilisateurs</a></li>
+            <li><a href="{{ url_for('manage_newsletter') }}"><i class="fas fa-envelope"></i> Newsletter</a></li>
+        </ul>
+    </div>
+
+    <div class="admin-content">
+        <h1>Gérer les utilisateurs</h1>
+        
+        <div class="users-list">
+            {% for user in users.items %}
+            <div class="user-card" data-user-id="{{ user.id }}">
+                <div class="user-header">
+                    <div class="user-info">
+                        <h3>{{ user.username }}</h3>
+                        <span class="user-email">{{ user.email }}</span>
+                    </div>
+                    <div class="user-actions">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteUser({{ user.id }})">
+                            <i class="fas fa-trash"></i> Supprimer
+                        </button>
+                    </div>
+                </div>
+                <div class="user-meta">
+                    <span><i class="fas fa-calendar"></i> Inscrit le {{ user.created_at_formatted }}</span>
+                    <span><i class="fas fa-file-alt"></i> {{ user.article_count }} articles</span>
+                    <span><i class="fas fa-comments"></i> {{ user.comment_count }} commentaires</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+            {% if pagination.has_prev %}
+            <a href="{{ url_for('manage_users', page=pagination.prev_num) }}" class="btn btn-secondary">
+                <i class="fas fa-chevron-left"></i> Précédent
+            </a>
+            {% endif %}
+
+            <span class="current-page">
+                Page {{ pagination.page }} sur {{ pagination.pages }}
+            </span>
+
+            {% if pagination.has_next %}
+            <a href="{{ url_for('manage_users', page=pagination.next_num) }}" class="btn btn-secondary">
+                Suivant <i class="fas fa-chevron-right"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.admin-container {
+    display: flex;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.admin-sidebar {
+    width: 250px;
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.admin-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.admin-menu li {
+    margin-bottom: 0.5rem;
+}
+
+.admin-menu a {
+    display: block;
+    padding: 0.75rem 1rem;
+    color: #333;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.admin-menu a:hover,
+.admin-menu a.active {
+    background: #007bff;
+    color: white;
+}
+
+.admin-menu i {
+    margin-right: 0.5rem;
+    width: 20px;
+    text-align: center;
+}
+
+.admin-content {
+    flex: 1;
+}
+
+.users-list {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.user-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.user-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.user-info h3 {
+    margin: 0;
+    color: #333;
+}
+
+.user-email {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.user-meta {
+    color: #666;
+    font-size: 0.9rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.current-page {
+    color: #666;
+}
+
+.user-actions {
+    display: flex;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+.user-actions .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.user-actions .btn i {
+    font-size: 0.75rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function deleteUser(userId) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
+        fetch(`/admin/users/${userId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Supprimer la carte de l'utilisateur sans recharger la page
+                const userCard = document.querySelector(`.user-card[data-user-id="${userId}"]`);
+                if (userCard) {
+                    userCard.remove();
+                } else {
+                    // Si on ne trouve pas la carte, recharger la page
+                    window.location.reload();
+                }
+            } else {
+                alert(data.message || 'Erreur lors de la suppression de l\'utilisateur');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la suppression de l\'utilisateur');
+        });
+    }
+}
+</script>
+{% endblock %} 

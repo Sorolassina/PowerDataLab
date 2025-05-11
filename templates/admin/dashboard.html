@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-3">
+        <div class="col-12">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                <i class="fas fa-home"></i> Retour à l'accueil
+            </a>
+        </div>
+    </div>
+    <h1 class="mb-4">Tableau de bord administrateur</h1>
+    
+    <!-- Navigation admin -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Navigation</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col">
+                            <a href="{{ url_for('manage_articles') }}" class="btn btn-primary w-100">
+                                <i class="fas fa-newspaper"></i> Gérer les articles
+                            </a>
+                        </div>
+                        <div class="col">
+                            <a href="{{ url_for('manage_newsletter') }}" class="btn btn-info w-100">
+                                <i class="fas fa-envelope"></i> Newsletter
+                            </a>
+                        </div>
+                        <div class="col">
+                            <a href="{{ url_for('manage_categories') }}" class="btn btn-warning w-100">
+                                <i class="fas fa-tags"></i> Gérer les catégories
+                            </a>
+                        </div>
+                        <div class="col">
+                            <a href="{{ url_for('manage_users') }}" class="btn btn-secondary w-100">
+                                <i class="fas fa-users"></i> Gérer les utilisateurs
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="row">
+        <div class="col-md-3 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Articles</h5>
+                    <p class="card-text display-4">{{ articles|length }}</p>
+                    <a href="{{ url_for('manage_articles') }}" class="btn btn-primary">Gérer</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Catégories</h5>
+                    <p class="card-text display-4">{{ categories|length }}</p>
+                    <a href="{{ url_for('manage_categories') }}" class="btn btn-primary">Gérer</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Commentaires</h5>
+                    <p class="card-text display-4">{{ comments|length }}</p>
+                    <a href="{{ url_for('manage_comments') }}" class="btn btn-primary">Gérer</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Analytics</h5>
+                    <p class="card-text">Voir les statistiques</p>
+                    <a href="{{ url_for('analytics') }}" class="btn btn-primary">Voir</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Articles récents -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Articles récents</h5>
+            <a href="{{ url_for('manage_articles') }}" class="btn btn-primary btn-sm">Voir tous</a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Titre</th>
+                            <th>Catégorie</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for article in articles[:5] %}
+                        <tr>
+                            <td>{{ article.title }}</td>
+                            <td>
+                                <span class="badge" style="background-color: {{ article.color_theme }}">
+                                    {{ article.category_name }}
+                                </span>
+                            </td>
+                            <td>{{ article.created_at_formatted }}</td>
+                            <td>
+                                <a href="{{ url_for('edit_article', article_id=article.id) }}" class="btn btn-sm btn-primary">Modifier</a>
+                                <form action="{{ url_for('delete_article_route', article_id=article.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet article ?')">
+                                        <i class="fas fa-trash"></i> Supprimer
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Commentaires récents -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Commentaires récents</h5>
+            <a href="{{ url_for('manage_comments') }}" class="btn btn-primary btn-sm">Voir tous</a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Article</th>
+                            <th>Auteur</th>
+                            <th>Commentaire</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for comment in comments[:5] %}
+                        <tr>
+                            <td>{{ comment.article.title }}</td>
+                            <td>{{ comment.author.username }}</td>
+                            <td>{{ comment.content[:50] }}...</td>
+                            <td>{{ comment.created_at_formatted }}</td>
+                            <td>
+                                <form action="{{ url_for('delete_comment_route', comment_id=comment.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')">
+                                        <i class="fas fa-trash"></i> Supprimer
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<style>
+.badge {
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    color: white;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+.list-group-item {
+    transition: all 0.3s ease;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+.btn i {
+    font-size: 1rem;
+}
+
+.gap-2 {
+    gap: 0.5rem !important;
+}
+
+.category-badge {
+    text-decoration: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    color: white;
+}
+
+.category-badge[data-color] {
+    background-color: var(--category-color);
+}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.category-badge[data-color]').forEach(function(element) {
+        element.style.setProperty('--category-color', element.dataset.color);
+    });
+});
+</script>
+{% endblock %} 

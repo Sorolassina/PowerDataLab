@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Modifier la Newsletter - PowerDataLab{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Modifier la Newsletter</h2>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="subject" class="form-label">Sujet</label>
+                            <input type="text" class="form-control" id="subject" name="subject" 
+                                   value="{{ newsletter.subject }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="content" class="form-label">Contenu</label>
+                            <textarea class="form-control" id="content" name="content" 
+                                      rows="10" required>{{ newsletter.content }}</textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Articles à inclure</label>
+                            <div class="row">
+                                {% for article in articles %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" 
+                                               name="articles" value="{{ article.id }}"
+                                               id="article{{ article.id }}"
+                                               {% if article.id|string in selected_articles %}checked{% endif %}>
+                                        <label class="form-check-label" for="article{{ article.id }}">
+                                            {{ article.title }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('manage_newsletter') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Retour
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Enregistrer les modifications
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Informations</h3>
+                </div>
+                <div class="card-body">
+                    <p><strong>Créée le :</strong> {{ newsletter.created_at_formatted }}</p>
+                    <p><strong>Dernière modification :</strong> {{ newsletter.updated_at_formatted }}</p>
+                    <p><strong>Nombre d'articles :</strong> {{ selected_articles|length }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Activer l'éditeur de texte riche si nécessaire
+    // Vous pouvez ajouter ici l'initialisation de TinyMCE ou d'un autre éditeur
+</script>
+{% endblock %} 

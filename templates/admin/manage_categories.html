@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Gérer les catégories - PowerDataLab{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-3">
+        <div class="col-12">
+            <a href="{{ url_for('admin') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour au tableau de bord
+            </a>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Gérer les catégories</h5>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                        <i class="fas fa-plus"></i> Nouvelle catégorie
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if categories %}
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Slug</th>
+                                        <th>Couleur</th>
+                                        <th>Description</th>
+                                        <th>Articles</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for category in categories %}
+                                        <tr data-category-id="{{ category.id }}">
+                                            <td>
+                                                <span class="badge" style="background-color: {{ category.color_theme }}">
+                                                    {{ category.name }}
+                                                </span>
+                                            </td>
+                                            <td>{{ category.slug }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="color-preview me-2" style="background-color: {{ category.color_theme }}"></div>
+                                                    {{ category.color_theme }}
+                                                </div>
+                                            </td>
+                                            <td>{{ category.description }}</td>
+                                            <td>{{ category.articles|length }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-warning" onclick="editCategory({{ category.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <form action="{{ url_for('delete_category_route', category_id=category.id) }}" method="POST" class="d-inline">
+                                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Aucune catégorie n'a été créée.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajout Catégorie -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nouvelle catégorie</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('new_category') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nom</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="color" class="form-label">Couleur</label>
+                        <input type="color" class="form-control form-control-color" id="color" name="color_theme" value="#000000" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Édition Catégorie -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modifier la catégorie</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editCategoryForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">Nom</label>
+                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_color" class="form-label">Couleur</label>
+                        <input type="color" class="form-control form-control-color" id="edit_color" name="color_theme" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="edit_description" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.color-preview {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.badge {
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    color: white;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+.btn-sm i {
+    font-size: 0.75rem;
+}
+
+.table td .btn {
+    margin: 0 0.25rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function editCategory(categoryId) {
+    // Récupérer les données de la catégorie
+    fetch(`/admin/categories/edit/${categoryId}`)
+        .then(response => response.json())
+        .then(data => {
+            // Remplir le formulaire
+            document.getElementById('edit_name').value = data.name;
+            document.getElementById('edit_color').value = data.color;
+            document.getElementById('edit_description').value = data.description;
+            
+            // Mettre à jour l'action du formulaire
+            document.getElementById('editCategoryForm').action = `/admin/categories/edit/${categoryId}`;
+            
+            // Afficher le modal
+            new bootstrap.Modal(document.getElementById('editCategoryModal')).show();
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la récupération des données de la catégorie');
+        });
+}
+
+// Gérer la soumission du formulaire de modification
+document.getElementById('editCategoryForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            throw new Error('Erreur lors de la modification');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la modification de la catégorie');
+    });
+});
+
+function confirmDelete(categoryId) {
+    return confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?');
+}
+</script>
+{% endblock %} 

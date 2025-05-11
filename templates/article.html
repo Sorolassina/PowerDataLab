@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.title }} - PowerDataLab{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <article class="blog-post">
+                {% if article.image_path %}
+                <div class="article-images mb-4">
+                    {% for image_path in article.image_path.split(',') if image_path.strip() %}
+                    <img src="{{ url_for('static', filename=image_path) }}" class="img-fluid rounded mb-2" alt="{{ article.title }}">
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="article-content">
+                    {{ article.content|replace('\n', '<br>')|safe }}
+                </div>
+                
+                {% if article.tags %}
+                <div class="article-tags mt-4">
+                    <h5>Tags :</h5>
+                    {% for tag in article.tags.split(',') %}
+                    <span class="badge bg-secondary me-1">{{ tag.strip() }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </article>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<style>
+.blog-post {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.article-content {
+    line-height: 1.8;
+    font-size: 1.1rem;
+}
+
+.article-images img {
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 1rem;
+}
+
+.article-tags {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #dee2e6;
+}
+
+.article-tags .badge {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.6rem;
+}
+</style>
+{% endblock %} 

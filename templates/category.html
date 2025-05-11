@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}{{ category.name }} - PowerDataLab{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        {% for article in articles %}
+        <article class="card mb-4">
+            {% if article.image_path %}
+            <img src="{{ url_for('static', filename=article.image_path.split(',')[0]) }}" class="card-img-top" alt="{{ article.title }}">
+            {% endif %}
+            <div class="card-body">
+                <h2 class="card-title">
+                    <a href="{{ url_for('article', slug=article.slug) }}" class="text-decoration-none">{{ article.title }}</a>
+                </h2>
+                <p class="card-text text-muted">
+                    <small>
+                        Par {{ article.author_name }} | 
+                        {{ article.created_at_formatted }}
+                    </small>
+                </p>
+                <p class="card-text">{{ article.excerpt }}</p>
+                <a href="{{ url_for('article', slug=article.slug) }}" class="btn btn-primary">Lire la suite</a>
+            </div>
+        </article>
+        {% else %}
+        <p>Aucun article disponible dans cette catégorie pour le moment.</p>
+        {% endfor %}
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-4 newsletter-card">
+            <div class="card-body">
+                <h3 class="card-title">Newsletter</h3>
+                <p class="card-text">Inscrivez-vous à notre newsletter pour recevoir nos derniers articles.</p>
+                <form action="{{ url_for('subscribe_newsletter') }}" method="post">
+                    <div class="mb-3">
+                        <input type="email" name="email" class="form-control" placeholder="Votre email" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">S'inscrire</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title">Catégories</h3>
+                <ul class="list-group list-group-flush">
+                    {% for cat in categories %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('category', slug=cat.slug) }}" class="text-decoration-none {% if cat.id == category.id %}fw-bold{% endif %}">
+                            {{ cat.name }}
+                        </a>
+                        <span class="badge bg-primary rounded-pill">{{ cat.article_count }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+
+.articles-grid {
+    display: grid;
+    gap: 2rem;
+}
+
+.article-card {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+.article-card:hover {
+    transform: translateY(-4px);
+}
+
+.article-image {
+    height: 200px;
+    overflow: hidden;
+}
+
+.article-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.article-content {
+    padding: 1.5rem;
+}
+
+.article-title {
+    margin: 0 0 1rem 0;
+    font-size: 1.5rem;
+}
+
+.article-title a {
+    color: #333;
+    text-decoration: none;
+}
+
+.article-title a:hover {
+    color: #007bff;
+}
+
+.article-meta {
+    display: flex;
+    gap: 1rem;
+    color: #666;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.article-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.article-excerpt {
+    color: #666;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.read-more {
+    display: inline-block;
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.read-more:hover {
+    text-decoration: underline;
+}
+
+@media (min-width: 768px) {
+    .articles-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1200px) {
+    .articles-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Récupérer la couleur de la catégorie actuelle
+    const categoryColor = "{{ category.color_theme }}";
+    if (categoryColor) {
+        document.documentElement.style.setProperty('--category-color', categoryColor);
+    }
+});
+</script>
+{% endblock %} 
