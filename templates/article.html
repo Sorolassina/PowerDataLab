@@ -28,6 +28,49 @@
                 </div>
                 {% endif %}
             </article>
+
+            <!-- Section des commentaires -->
+            <div class="comments-section mt-5">
+                <h3>Commentaires</h3>
+                
+                <!-- Liste des commentaires -->
+                {% if comments %}
+                <div class="comments-list">
+                    {% for comment in comments %}
+                    <div class="comment mb-4">
+                        <div class="comment-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ comment.author_name }}</strong>
+                                <small class="text-muted ms-2">{{ comment.created_at_formatted }}</small>
+                            </div>
+                        </div>
+                        <div class="comment-content mt-2">
+                            {{ comment.content|replace('\n', '<br>')|safe }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">Aucun commentaire pour le moment. Soyez le premier à commenter !</p>
+                {% endif %}
+
+                <!-- Formulaire de commentaire -->
+                {% if current_user.is_authenticated %}
+                <div class="comment-form mt-4">
+                    <h4>Laisser un commentaire</h4>
+                    <form method="POST" action="{{ url_for('add_comment', slug=article.slug) }}">
+                        <div class="form-group">
+                            <textarea class="form-control" name="content" rows="4" required placeholder="Votre commentaire..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-3">Publier le commentaire</button>
+                    </form>
+                </div>
+                {% else %}
+                <div class="alert alert-info mt-4">
+                    <p class="mb-0">Pour laisser un commentaire, veuillez <a href="{{ url_for('login') }}">vous connecter</a> ou <a href="{{ url_for('register') }}">créer un compte</a>.</p>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
@@ -63,6 +106,41 @@
 .article-tags .badge {
     font-size: 0.9rem;
     padding: 0.4rem 0.6rem;
+}
+
+/* Styles pour les commentaires */
+.comments-section {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.comment {
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background: #f8f9fa;
+}
+
+.comment-header {
+    font-size: 0.9rem;
+}
+
+.comment-content {
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.comment-form textarea {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 0.5rem;
+}
+
+.comment-form textarea:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
 }
 </style>
 {% endblock %} 

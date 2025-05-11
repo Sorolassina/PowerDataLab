@@ -24,6 +24,7 @@ from flask_wtf.file import FileField, FileAllowed
 from wtforms import StringField, TextAreaField, SelectField
 from wtforms.validators import DataRequired, Email, EqualTo
 import uuid
+from flask_wtf.csrf import CSRFProtect
 
 class User(UserMixin):
     def __init__(self, user_data):
@@ -31,6 +32,7 @@ class User(UserMixin):
         self.username = user_data['username']
         self.email = user_data['email']
         self.is_admin = bool(user_data['is_admin'])
+        self.is_blocked = bool(user_data['is_blocked'])
         self.password_hash = user_data['password_hash']
 
     @staticmethod
@@ -39,6 +41,9 @@ class User(UserMixin):
         if user_data:
             return User(user_data)
         return None
+
+    def is_active(self):
+        return not self.is_blocked
 
 # Chargement des variables d'environnement
 load_dotenv()
@@ -57,8 +62,10 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['DATABASE'] = 'blog.db'
 
 # Configuration CSRF
+csrf = CSRFProtect()
+csrf.init_app(app)
 app.config['WTF_CSRF_ENABLED'] = True
-app.config['WTF_CSRF_SECRET_KEY'] = os.environ.get('WTF_CSRF_SECRET_KEY', 'your-csrf-secret-key-here')
+app.config['WTF_CSRF_SECRET_KEY'] = os.environ.get('WTF_CSRF_SECRET_KEY', app.config['SECRET_KEY'])
 
 # Configuration de Flask-Mail
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
@@ -119,20 +126,25 @@ def get_user_by_email(email):
         return dict(user_data)
     return None
 
+class LoginForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = StringField('Mot de passe', validators=[DataRequired()])
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    form = LoginForm()
+    if form.validate_on_submit():
         # Vérifier d'abord si c'est l'email admin
-        if email == os.getenv('MAIL_USERNAME'):
+        if form.email.data == os.getenv('MAIL_USERNAME'):
             session_code = generate_session_code()
             session['admin_code'] = session_code
             session['admin_code_expiry'] = datetime.now().replace(tzinfo=None) + timedelta(minutes=15)
-            session['admin_email'] = email
+            session['admin_email'] = form.email.data
             
-            if send_admin_verification_email(email, session_code):
+            if send_admin_verification_email(form.email.data, session_code):
                 flash('Un code de vérification a été envoyé à votre email.', 'info')
                 return redirect(url_for('admin_verify'))
             else:
@@ -140,8 +152,8 @@ def login():
                 return redirect(url_for('login'))
         
         # Pour les utilisateurs normaux, vérifier le mot de passe
-        user_data = get_user_by_email(email)
-        if user_data and check_password_hash(user_data['password_hash'], password):
+        user_data = get_user_by_email(form.email.data)
+        if user_data and check_password_hash(user_data['password_hash'], form.password.data):
             user = User(user_data)
             login_user(user)
             session['is_admin'] = user.is_admin
@@ -150,7 +162,7 @@ def login():
         else:
             flash('Email ou mot de passe incorrect.', 'error')
     
-    return render_template('login.html')
+    return render_template('login.html', form=form)
 
 @app.route('/logout')
 def logout():
@@ -370,7 +382,21 @@ def article(slug):
         return redirect(url_for('index'))
     
     article = dict(article_data)
-    return render_template('article.html', article=article)
+    
+    # Charger les commentaires de l'article
+    cur = get_db().execute('''
+        SELECT 
+            comments.*,
+            users.username as author_name,
+            strftime('%d/%m/%Y %H:%M', comments.created_at) as created_at_formatted
+        FROM comments 
+        LEFT JOIN users ON comments.user_id = users.id
+        WHERE comments.article_id = ?
+        ORDER BY comments.created_at DESC
+    ''', [article['id']])
+    comments = [dict(row) for row in cur.fetchall()]
+    
+    return render_template('article.html', article=article, comments=comments)
 
 # Routes d'administration
 @app.route('/admin')
@@ -873,68 +899,74 @@ def send_admin_verification_email(user_email, session_code):
         print(f"Erreur inattendue lors de l'envoi d'email: {e}")
         return False
 
+class AdminVerifyForm(FlaskForm):
+    code = StringField('Code de vérification', validators=[DataRequired()])
+
 @app.route('/admin/verify', methods=['GET'])
 def admin_verify():
     if not session.get('admin_email'):
         return redirect(url_for('login'))
-    return render_template('admin_verify.html')
+    form = AdminVerifyForm()
+    return render_template('admin_verify.html', form=form)
 
 @app.route('/admin/verify-code', methods=['POST'])
 def verify_admin_code():
     if not session.get('admin_email'):
         return redirect(url_for('login'))
     
-    code = request.form.get('code')
-    stored_code = session.get('admin_code')
-    expiry_time = session.get('admin_code_expiry')
-    
-    if stored_code and expiry_time and isinstance(expiry_time, datetime):
-        current_time = datetime.now().replace(tzinfo=None)
-        expiry_time = expiry_time.replace(tzinfo=None)
+    form = AdminVerifyForm()
+    if form.validate_on_submit():
+        code = form.code.data
+        stored_code = session.get('admin_code')
+        expiry_time = session.get('admin_code_expiry')
         
-        if current_time < expiry_time:
-            if code == stored_code:
-                # Vérifier si l'utilisateur admin existe déjà
-                cur = get_db().execute('SELECT * FROM users WHERE email = ?', [session['admin_email']])
-                user_data = cur.fetchone()
-                
-                if user_data:
-                    user = User(dict(user_data))
-                else:
-                    # Créer un nouvel utilisateur admin
-                    password_hash = generate_password_hash(''.join(random.choices(string.ascii_letters + string.digits, k=12)))
-                    get_db().execute('''
-                        INSERT INTO users (username, email, password_hash, is_admin)
-                        VALUES (?, ?, ?, 1)
-                    ''', ['admin', session['admin_email'], password_hash])
-                    get_db().commit()
-                    
-                    # Récupérer l'utilisateur nouvellement créé
+        if stored_code and expiry_time and isinstance(expiry_time, datetime):
+            current_time = datetime.now().replace(tzinfo=None)
+            expiry_time = expiry_time.replace(tzinfo=None)
+            
+            if current_time < expiry_time:
+                if code == stored_code:
+                    # Vérifier si l'utilisateur admin existe déjà
                     cur = get_db().execute('SELECT * FROM users WHERE email = ?', [session['admin_email']])
                     user_data = cur.fetchone()
-                    user = User(dict(user_data))
+                    
+                    if user_data:
+                        user = User(dict(user_data))
+                    else:
+                        # Créer un nouvel utilisateur admin
+                        password_hash = generate_password_hash(''.join(random.choices(string.ascii_letters + string.digits, k=12)))
+                        get_db().execute('''
+                            INSERT INTO users (username, email, password_hash, is_admin)
+                            VALUES (?, ?, ?, 1)
+                        ''', ['admin', session['admin_email'], password_hash])
+                        get_db().commit()
+                        
+                        # Récupérer l'utilisateur nouvellement créé
+                        cur = get_db().execute('SELECT * FROM users WHERE email = ?', [session['admin_email']])
+                        user_data = cur.fetchone()
+                        user = User(dict(user_data))
+                    
+                    login_user(user)
+                    session.pop('admin_code', None)
+                    session.pop('admin_code_expiry', None)
+                    session.pop('admin_email', None)
+                    flash('Vérification réussie !', 'success')
+                    return redirect(url_for('admin_dashboard'))
+                else:
+                    flash('Code invalide', 'error')
+            else:
+                flash('Code expiré', 'error')
+                # Générer un nouveau code
+                session_code = generate_session_code()
+                session['admin_code'] = session_code
+                session['admin_code_expiry'] = datetime.now().replace(tzinfo=None) + timedelta(minutes=15)
                 
-                login_user(user)
-                session.pop('admin_code', None)
-                session.pop('admin_code_expiry', None)
-                session.pop('admin_email', None)
-                flash('Vérification réussie !', 'success')
-                return redirect(url_for('admin_dashboard'))
-            else:
-                flash('Code invalide', 'error')
+                if send_admin_verification_email(session['admin_email'], session_code):
+                    flash('Un nouveau code a été envoyé à votre email', 'info')
+                else:
+                    flash('Erreur lors de l\'envoi du code. Veuillez réessayer.', 'error')
         else:
-            flash('Code expiré', 'error')
-            # Générer un nouveau code
-            session_code = generate_session_code()
-            session['admin_code'] = session_code
-            session['admin_code_expiry'] = datetime.now().replace(tzinfo=None) + timedelta(minutes=15)
-            
-            if send_admin_verification_email(session['admin_email'], session_code):
-                flash('Un nouveau code a été envoyé à votre email', 'info')
-            else:
-                flash('Erreur lors de l\'envoi du code. Veuillez réessayer.', 'error')
-    else:
-        flash('Session invalide ou expirée', 'error')
+            flash('Session invalide ou expirée', 'error')
     
     return redirect(url_for('admin_verify'))
 
@@ -947,6 +979,10 @@ def load_categories():
 @app.context_processor
 def inject_categories():
     return dict(categories=g.get('categories', []))
+
+@app.context_processor
+def inject_csrf_token():
+    return dict(csrf_token=lambda: csrf._get_csrf_token())
 
 class CSRFProtectForm(FlaskForm):
     pass
@@ -2095,6 +2131,114 @@ def upload_image():
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+class ResetPasswordRequestForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+
+@app.route('/reset-password-request', methods=['GET', 'POST'])
+def reset_password_request():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    form = ResetPasswordRequestForm()
+    if form.validate_on_submit():
+        user = get_user_by_email(form.email.data)
+        
+        if user:
+            # Générer un token unique
+            token = secrets.token_urlsafe(32)
+            expiry = datetime.now() + timedelta(hours=1)
+            
+            # Sauvegarder le token dans la base de données
+            get_db().execute('''
+                UPDATE users 
+                SET reset_token = ?, reset_token_expiry = ?
+                WHERE email = ?
+            ''', [token, expiry, form.email.data])
+            get_db().commit()
+            
+            # Envoyer l'email
+            reset_url = url_for('reset_password', token=token, _external=True)
+            msg = Message(
+                'Réinitialisation de votre mot de passe',
+                recipients=[form.email.data],
+                html=render_template('email/reset_password.html', 
+                                   reset_url=reset_url,
+                                   username=user['username'])
+            )
+            try:
+                mail.send(msg)
+                flash('Un email avec les instructions de réinitialisation a été envoyé.', 'info')
+            except Exception as e:
+                flash('Erreur lors de l\'envoi de l\'email. Veuillez réessayer.', 'error')
+                print(f"Erreur d'envoi d'email: {e}")
+        else:
+            # Pour des raisons de sécurité, on affiche le même message même si l'email n'existe pas
+            flash('Si votre email est enregistré, vous recevrez les instructions de réinitialisation.', 'info')
+        
+        return redirect(url_for('login'))
+    
+    return render_template('reset_password_request.html', form=form)
+
+class ResetPasswordForm(FlaskForm):
+    password = StringField('Nouveau mot de passe', validators=[DataRequired()])
+    confirm_password = StringField('Confirmer le mot de passe', validators=[DataRequired(), EqualTo('password')])
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+        
+    # Vérifier si le token est valide
+    cur = get_db().execute('''
+        SELECT * FROM users 
+        WHERE reset_token = ? AND reset_token_expiry > ?
+    ''', [token, datetime.now()])
+    user = cur.fetchone()
+    
+    if not user:
+        flash('Le lien de réinitialisation est invalide ou a expiré.', 'error')
+        return redirect(url_for('reset_password_request'))
+    
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        # Mettre à jour le mot de passe
+        password_hash = generate_password_hash(form.password.data)
+        get_db().execute('''
+            UPDATE users 
+            SET password_hash = ?, reset_token = NULL, reset_token_expiry = NULL
+            WHERE id = ?
+        ''', [password_hash, user['id']])
+        get_db().commit()
+        
+        flash('Votre mot de passe a été réinitialisé avec succès.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('reset_password.html', form=form, token=token)
+
+@app.route('/admin/users/<int:user_id>/toggle-block', methods=['POST'])
+@login_required
+@admin_required
+def toggle_user_block(user_id):
+    if user_id == current_user.id:
+        flash('Vous ne pouvez pas bloquer votre propre compte.', 'error')
+        return redirect(url_for('manage_users'))
+    
+    cur = get_db().execute('SELECT * FROM users WHERE id = ?', [user_id])
+    user = cur.fetchone()
+    
+    if not user:
+        flash('Utilisateur non trouvé.', 'error')
+        return redirect(url_for('manage_users'))
+    
+    # Inverser l'état de blocage
+    new_status = 0 if user['is_blocked'] else 1
+    get_db().execute('UPDATE users SET is_blocked = ? WHERE id = ?', [new_status, user_id])
+    get_db().commit()
+    
+    action = "bloqué" if new_status else "débloqué"
+    flash(f'Utilisateur {action} avec succès.', 'success')
+    return redirect(url_for('manage_users'))
 
 if __name__ == '__main__':
     with app.app_context():

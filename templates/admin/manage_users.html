@@ -3,63 +3,99 @@
 {% block title %}Gérer les utilisateurs - PowerDataLab{% endblock %}
 
 {% block content %}
-<div class="admin-container">
-    <div class="admin-sidebar">
-        <ul class="admin-menu">
-            <li><a href="{{ url_for('admin') }}"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
-            <li><a href="{{ url_for('manage_articles') }}"><i class="fas fa-list"></i> Gérer les articles</a></li>
-            <li><a href="{{ url_for('create_article') }}"><i class="fas fa-plus"></i> Créer un article</a></li>
-            <li><a href="{{ url_for('manage_comments') }}"><i class="fas fa-comments"></i> Commentaires</a></li>
-            <li><a href="{{ url_for('manage_users') }}" class="active"><i class="fas fa-users"></i> Utilisateurs</a></li>
-            <li><a href="{{ url_for('manage_newsletter') }}"><i class="fas fa-envelope"></i> Newsletter</a></li>
-        </ul>
+<div class="container mt-4">
+    <h2>Gestion des utilisateurs</h2>
+    
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nom d'utilisateur</th>
+                    <th>Email</th>
+                    <th>Admin</th>
+                    <th>Statut</th>
+                    <th>Date d'inscription</th>
+                    <th>Articles</th>
+                    <th>Commentaires</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users.items %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>
+                        {% if user.is_admin %}
+                        <span class="badge bg-primary">Admin</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Utilisateur</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.is_blocked %}
+                        <span class="badge bg-danger">Bloqué</span>
+                        {% else %}
+                        <span class="badge bg-success">Actif</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ user.created_at_formatted }}</td>
+                    <td>{{ user.article_count }}</td>
+                    <td>{{ user.comment_count }}</td>
+                    <td>
+                        <div class="btn-group">
+                            {% if user.id != current_user.id %}
+                            <form action="{{ url_for('toggle_user_block', user_id=user.id) }}" method="POST" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir {% if user.is_blocked %}débloquer{% else %}bloquer{% endif %} cet utilisateur ?')">
+                                    {% if user.is_blocked %}
+                                    Débloquer
+                                    {% else %}
+                                    Bloquer
+                                    {% endif %}
+                                </button>
+                            </form>
+                            <form action="{{ url_for('delete_user', user_id=user.id) }}" method="POST" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')">
+                                    Supprimer
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
-    <div class="admin-content">
-        <h1>Gérer les utilisateurs</h1>
-        
-        <div class="users-list">
-            {% for user in users.items %}
-            <div class="user-card" data-user-id="{{ user.id }}">
-                <div class="user-header">
-                    <div class="user-info">
-                        <h3>{{ user.username }}</h3>
-                        <span class="user-email">{{ user.email }}</span>
-                    </div>
-                    <div class="user-actions">
-                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteUser({{ user.id }})">
-                            <i class="fas fa-trash"></i> Supprimer
-                        </button>
-                    </div>
-                </div>
-                <div class="user-meta">
-                    <span><i class="fas fa-calendar"></i> Inscrit le {{ user.created_at_formatted }}</span>
-                    <span><i class="fas fa-file-alt"></i> {{ user.article_count }} articles</span>
-                    <span><i class="fas fa-comments"></i> {{ user.comment_count }} commentaires</span>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-
-        <!-- Pagination -->
-        <div class="pagination">
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
             {% if pagination.has_prev %}
-            <a href="{{ url_for('manage_users', page=pagination.prev_num) }}" class="btn btn-secondary">
-                <i class="fas fa-chevron-left"></i> Précédent
-            </a>
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('manage_users', page=pagination.prev_num) }}">Précédent</a>
+            </li>
             {% endif %}
-
-            <span class="current-page">
-                Page {{ pagination.page }} sur {{ pagination.pages }}
-            </span>
-
+            
+            {% for page in range(1, pagination.pages + 1) %}
+            <li class="page-item {% if page == pagination.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('manage_users', page=page) }}">{{ page }}</a>
+            </li>
+            {% endfor %}
+            
             {% if pagination.has_next %}
-            <a href="{{ url_for('manage_users', page=pagination.next_num) }}" class="btn btn-secondary">
-                Suivant <i class="fas fa-chevron-right"></i>
-            </a>
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('manage_users', page=pagination.next_num) }}">Suivant</a>
+            </li>
             {% endif %}
-        </div>
-    </div>
+        </ul>
+    </nav>
+    {% endif %}
 </div>
 {% endblock %}
 
