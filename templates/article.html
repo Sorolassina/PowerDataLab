@@ -1,28 +1,28 @@
 {% extends "base.html" %}
 
-{% block title %}{{ article.title }} - PowerDataLab{% endblock %}
+{% block title %}{{ article['title'] }} - PowerDataLab{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="row">
         <div class="col-12">
             <article class="blog-post">
-                {% if article.image_path %}
+                {% if article['image_path'] %}
                 <div class="article-images mb-4">
-                    {% for image_path in article.image_path.split(',') if image_path.strip() %}
-                    <img src="{{ url_for('static', filename=image_path) }}" class="img-fluid rounded mb-2" alt="{{ article.title }}">
+                    {% for image_path in article['image_path'].split(',') if image_path.strip() %}
+                    <img src="{{ url_for('static', filename=image_path) }}" class="img-fluid rounded mb-2" alt="{{ article['title'] }}">
                     {% endfor %}
                 </div>
                 {% endif %}
                 
                 <div class="article-content">
-                    {{ article.content|replace('\n', '<br>')|safe }}
+                    {{ article['content']|replace('\n', '<br>')|safe }}
                 </div>
                 
-                {% if article.tags %}
+                {% if article['tags'] %}
                 <div class="article-tags mt-4">
                     <h5>Tags :</h5>
-                    {% for tag in article.tags.split(',') %}
+                    {% for tag in article['tags'].split(',') %}
                     <span class="badge bg-secondary me-1">{{ tag.strip() }}</span>
                     {% endfor %}
                 </div>
@@ -40,12 +40,12 @@
                     <div class="comment mb-4">
                         <div class="comment-header d-flex justify-content-between align-items-center">
                             <div>
-                                <strong>{{ comment.author_name }}</strong>
-                                <small class="text-muted ms-2">{{ comment.created_at_formatted }}</small>
+                                <strong>{{ comment['author_name'] }}</strong>
+                                <small class="text-muted ms-2">{{ comment['created_at_formatted'] }}</small>
                             </div>
                         </div>
                         <div class="comment-content mt-2">
-                            {{ comment.content|replace('\n', '<br>')|safe }}
+                            {{ comment['content']|replace('\n', '<br>')|safe }}
                         </div>
                     </div>
                     {% endfor %}
@@ -58,7 +58,8 @@
                 {% if current_user.is_authenticated %}
                 <div class="comment-form mt-4">
                     <h4>Laisser un commentaire</h4>
-                    <form method="POST" action="{{ url_for('add_comment', slug=article.slug) }}">
+                    <form method="POST" action="{{ url_for('add_comment', slug=article['slug']) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="form-group">
                             <textarea class="form-control" name="content" rows="4" required placeholder="Votre commentaire..."></textarea>
                         </div>
@@ -74,6 +75,33 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const commentForm = document.querySelector('.comment-form form');
+    if (commentForm) {
+        // Mettre à jour le token CSRF avant la soumission
+        commentForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            fetch('/get-csrf-token')
+                .then(response => response.json())
+                .then(data => {
+                    const tokenInput = this.querySelector('input[name="csrf_token"]');
+                    if (tokenInput) {
+                        tokenInput.value = data.csrf_token;
+                        this.submit();
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la récupération du token CSRF:', error);
+                });
+        });
+    }
+});
+</script>
 {% endblock %}
 
 {% block extra_css %}

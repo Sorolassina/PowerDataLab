@@ -7,10 +7,9 @@
     <div class="admin-sidebar">
         <ul class="admin-menu">
             <li><a href="{{ url_for('admin') }}"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
-            <li><a href="{{ url_for('manage_articles') }}"><i class="fas fa-list"></i> Gérer les articles</a></li>
-            <li><a href="{{ url_for('create_article') }}"><i class="fas fa-plus"></i> Créer un article</a></li>
+            <li><a href="{{ url_for('manage_articles') }}"><i class="fas fa-list"></i> Articles</a></li>
             <li><a href="{{ url_for('manage_comments') }}" class="active"><i class="fas fa-comments"></i> Commentaires</a></li>
-            <li><a href="{{ url_for('manage_newsletter') }}"><i class="fas fa-envelope"></i> Newsletter</a></li>
+            <li><a href="{{ url_for('manage_newsletter') }}"><i class="fas fa-envelope"></i> Newsletters</a></li>
         </ul>
     </div>
 
@@ -22,16 +21,18 @@
             <div class="comment-card">
                 <div class="comment-header">
                     <div class="comment-author">
-                        <i class="fas fa-user"></i> {{ comment.comment_author.username }}
+                        <i class="fas fa-user"></i> {{ comment['author_name'] }}
                     </div>
                     <div class="comment-actions">
-                        <form action="{{ url_for('toggle_comment', comment_id=comment.id) }}" method="POST" class="d-inline">
-                            <button type="submit" class="btn btn-{{ 'success' if not comment.is_approved else 'warning' }} btn-sm">
-                                <i class="fas fa-{{ 'check' if not comment.is_approved else 'times' }}"></i>
-                                {{ 'Approuver' if not comment.is_approved else 'Désapprouver' }}
+                        <form action="{{ url_for('toggle_comment', comment_id=comment['id']) }}" method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-{{ 'success' if not comment['is_approved'] else 'warning' }} btn-sm">
+                                <i class="fas fa-{{ 'check' if not comment['is_approved'] else 'times' }}"></i>
+                                {{ 'Approuver' if not comment['is_approved'] else 'Désapprouver' }}
                             </button>
                         </form>
-                        <form action="{{ url_for('delete_comment_route', comment_id=comment.id) }}" method="POST" class="d-inline">
+                        <form action="{{ url_for('delete_comment_route', comment_id=comment['id']) }}" method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')">
                                 <i class="fas fa-trash"></i> Supprimer
                             </button>
@@ -39,14 +40,14 @@
                     </div>
                 </div>
                 <div class="comment-meta">
-                    <span><i class="fas fa-calendar"></i> {{ comment.created_at_formatted }}</span>
-                    <span><i class="fas fa-file-alt"></i> {{ comment.article.title }}</span>
-                    <span class="status-badge {{ 'approved' if comment.is_approved else 'pending' }}">
-                        {{ 'Approuvé' if comment.is_approved else 'En attente' }}
+                    <span><i class="fas fa-calendar"></i> {{ comment['created_at_formatted'] }}</span>
+                    <span><i class="fas fa-file-alt"></i> {{ comment['article_title'] }}</span>
+                    <span class="status-badge {{ 'approved' if comment['is_approved'] else 'pending' }}">
+                        {{ 'Approuvé' if comment['is_approved'] else 'En attente' }}
                     </span>
                 </div>
                 <div class="comment-content">
-                    {{ comment.content }}
+                    {{ comment['content'] }}
                 </div>
             </div>
             {% endfor %}
@@ -211,4 +212,67 @@
     color: #666;
 }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Fonction pour mettre à jour le token CSRF
+    function updateCsrfToken() {
+        fetch('/get-csrf-token', {
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Mettre à jour tous les tokens CSRF dans les formulaires
+            document.querySelectorAll('input[name="csrf_token"]').forEach(input => {
+                input.value = data.csrf_token;
+            });
+        })
+        .catch(error => {
+            console.error('Erreur lors de la récupération du token CSRF:', error);
+        });
+    }
+
+    // Mettre à jour le token CSRF au chargement de la page
+    updateCsrfToken();
+
+    // Gérer la soumission des formulaires
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Récupérer le token CSRF actuel
+            const csrfToken = form.querySelector('input[name="csrf_token"]').value;
+            
+            // Préparer les données du formulaire
+            const formData = new FormData(form);
+            
+            // Envoyer la requête avec fetch
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Recharger la page après une action réussie
+                    window.location.reload();
+                } else {
+                    // En cas d'erreur, mettre à jour le token CSRF et réessayer
+                    updateCsrfToken();
+                    throw new Error('Erreur lors de la soumission du formulaire');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                alert('Une erreur est survenue. Veuillez réessayer.');
+            });
+        });
+    });
+});
+</script>
 {% endblock %} 

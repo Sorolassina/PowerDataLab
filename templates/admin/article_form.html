@@ -17,6 +17,7 @@
         <h1>{% if article %}Modifier l'article{% else %}Nouvel article{% endif %}</h1>
         
         <form method="POST" enctype="multipart/form-data" class="article-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
                 <label for="title">Titre</label>
                 <input type="text" class="form-control" id="title" name="title" value="{{ article.title if article else '' }}" required>
@@ -239,10 +240,40 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script src="https://cdn.tiny.cloud/1/vqiw054507d4x8ru2undrh2vxuscjkzrgnf6dt3mfvz1ub68/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Fonction pour mettre à jour le token CSRF dans le formulaire d'article
+    function updateArticleCsrfToken() {
+        fetch('/get-csrf-token', {
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            const tokenInput = document.querySelector('form.article-form input[name="csrf_token"]');
+            if (tokenInput) {
+                tokenInput.value = data.csrf_token;
+                console.log('Token CSRF mis à jour dans le formulaire d\'article:', data.csrf_token);
+            }
+        })
+        .catch(error => {
+            console.error('Erreur lors de la récupération du token CSRF pour l\'article:', error);
+        });
+    }
+
+    // Mettre à jour le token CSRF au chargement de la page
+    updateArticleCsrfToken();
+
+    // Si le formulaire d'article est dans un modal, on peut aussi écouter l'ouverture du modal
+    const articleModal = document.getElementById('articleModal');
+    if (articleModal) {
+        articleModal.addEventListener('show.bs.modal', function () {
+            updateArticleCsrfToken();
+        });
+    }
+
     // Initialiser Sortable pour la galerie d'images
     const gallery = document.getElementById('sortable-gallery');
     if (gallery) {
@@ -272,6 +303,31 @@ document.addEventListener('DOMContentLoaded', function() {
         automatic_uploads: true,
         file_picker_types: 'image',
         images_reuse_filename: true,
+        images_upload_handler: function (blobInfo, success, failure) {
+            const formData = new FormData();
+            formData.append('file', blobInfo.blob(), blobInfo.filename());
+            formData.append('csrf_token', '{{ csrf_token() }}');
+
+            fetch('{{ url_for("upload_image") }}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.location) {
+                    success(data.location);
+                } else {
+                    failure('Erreur lors de l\'upload de l\'image');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                failure('Erreur lors de l\'upload de l\'image');
+            });
+        },
         setup: function(editor) {
             editor.on('change', function() {
                 editor.save();

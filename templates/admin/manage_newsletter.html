@@ -7,11 +7,11 @@
     <div class="admin-sidebar">
         <ul class="admin-menu">
             <li><a href="{{ url_for('admin') }}"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
-            <li><a href="{{ url_for('manage_articles') }}"><i class="fas fa-list"></i> Gérer les articles</a></li>
+            <li><a href="{{ url_for('manage_articles') }}"><i class="fas fa-list"></i> Articles</a></li>
             <li><a href="{{ url_for('create_article') }}"><i class="fas fa-plus"></i> Créer un article</a></li>
             <li><a href="{{ url_for('manage_comments') }}"><i class="fas fa-comments"></i> Commentaires</a></li>
             <li><a href="{{ url_for('manage_users') }}"><i class="fas fa-users"></i> Utilisateurs</a></li>
-            <li><a href="{{ url_for('manage_newsletter') }}" class="active"><i class="fas fa-envelope"></i> Newsletter</a></li>
+            <li><a href="{{ url_for('manage_newsletter') }}" class="active"><i class="fas fa-envelope"></i> Newsletters</a></li>
         </ul>
     </div>
 
@@ -148,6 +148,7 @@
             </div>
             <div class="modal-body">
                 <form id="sendNewsletterForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
                         <label for="subject" class="form-label">Sujet</label>
                         <input type="text" class="form-control" id="subject" name="subject" required>
@@ -228,6 +229,7 @@
             </div>
             <div class="modal-body">
                 <form id="importSubscribersForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
                         <label for="importFile" class="form-label">Fichier CSV</label>
                         <input type="file" class="form-control" id="importFile" name="importFile" accept=".csv" required>
@@ -419,33 +421,36 @@
 {% block extra_js %}
 <script>
 function deleteSubscriber(subscriberId) {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cet abonné ?')) {
-        fetch(`/admin/newsletter/subscribers/${subscriberId}/delete`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Supprimer la carte de l'abonné sans recharger la page
-                const subscriberCard = document.querySelector(`.subscriber-card[data-subscriber-id="${subscriberId}"]`);
-                if (subscriberCard) {
-                    subscriberCard.remove();
-                } else {
-                    // Si on ne trouve pas la carte, recharger la page
-                    window.location.reload();
-                }
-            } else {
-                alert(data.message || 'Erreur lors de la suppression de l\'abonné');
-            }
-        })
-        .catch(error => {
-            console.error('Erreur:', error);
-            alert('Erreur lors de la suppression de l\'abonné');
-        });
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cet abonné ?')) {
+        return;
     }
+    
+    fetch(`/admin/newsletter/subscribers/${subscriberId}/delete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Supprimer la carte de l'abonné sans recharger la page
+            const subscriberCard = document.querySelector(`.subscriber-card[data-subscriber-id="${subscriberId}"]`);
+            if (subscriberCard) {
+                subscriberCard.remove();
+            } else {
+                // Si on ne trouve pas la carte, recharger la page
+                window.location.reload();
+            }
+        } else {
+            alert(data.message || 'Erreur lors de la suppression de l\'abonné');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la suppression de l\'abonné');
+    });
 }
 
 function toggleSubscriberStatus(subscriberId, action) {
@@ -453,6 +458,7 @@ function toggleSubscriberStatus(subscriberId, action) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
         }
     })
     .then(response => response.json())
@@ -515,13 +521,13 @@ document.addEventListener('DOMContentLoaded', function() {
 function sendNewsletter() {
     const form = document.getElementById('sendNewsletterForm');
     const formData = new FormData(form);
+    const csrfToken = formData.get('csrf_token');
     
     // Récupérer le type de destinataires
     const recipientType = formData.get('recipient_type');
     let subscribers = [];
     
     if (recipientType === 'selected') {
-        // Récupérer les IDs des abonnés sélectionnés
         subscribers = Array.from(formData.getAll('subscribers[]')).map(id => parseInt(id));
         if (subscribers.length === 0) {
             alert('Veuillez sélectionner au moins un destinataire');
@@ -529,7 +535,6 @@ function sendNewsletter() {
         }
     }
     
-    // Convertir FormData en objet JSON
     const data = {
         subject: formData.get('subject'),
         content: formData.get('content'),
@@ -542,7 +547,8 @@ function sendNewsletter() {
     fetch('/admin/newsletter/send', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
         },
         body: JSON.stringify(data)
     })
@@ -567,9 +573,13 @@ function sendNewsletter() {
 function importSubscribers() {
     const form = document.getElementById('importSubscribersForm');
     const formData = new FormData(form);
+    const csrfToken = formData.get('csrf_token');
     
     fetch('/admin/newsletter/import', {
         method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
         body: formData
     })
     .then(response => response.json())

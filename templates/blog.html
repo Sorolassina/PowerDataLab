@@ -34,7 +34,7 @@
                     {% endif %}
                     <div class="article-content">
                         <h2 class="article-title">
-                            <a href="{{ url_for('article', slug=article.slug) }}">{{ article.title }}</a>
+                            <a href="{{ url_for('article', slug=article.slug) }}" style="color: {{ article.color_theme }}">{{ article.title }}</a>
                         </h2>
                         <div class="article-meta">
                             <span class="article-author">
@@ -45,7 +45,7 @@
                             </span>
                             <span class="article-category">
                                 <i class="fas fa-folder"></i>
-                                <a href="{{ url_for('category', slug=article.category_slug) }}" class="category-link category-badge" data-color="{{ article.color_theme }}">
+                                <a href="{{ url_for('category', slug=article.category_slug) }}" class="category-link category-badge" style="background-color: {{ article.color_theme }}">
                                     {{ article.category_name }}
                                 </a>
                             </span>
@@ -53,7 +53,7 @@
                         <div class="article-excerpt">
                             {{ article.excerpt }}
                         </div>
-                        <a href="{{ url_for('article', slug=article.slug) }}" class="read-more">Lire la suite</a>
+                        <a href="{{ url_for('article', slug=article.slug) }}" class="read-more" style="color: {{ article.color_theme }}; border-color: {{ article.color_theme }}">Lire la suite</a>
                     </div>
                 </article>
                 {% endfor %}
@@ -109,12 +109,12 @@
 }
 
 .article-title a {
-    color: #333;
     text-decoration: none;
+    transition: opacity 0.2s ease;
 }
 
 .article-title a:hover {
-    color: var(--category-color);
+    opacity: 0.8;
 }
 
 .article-meta {
@@ -141,18 +141,17 @@
 
 .read-more {
     display: inline-block;
-    color: var(--category-color);
     text-decoration: none;
     font-weight: 500;
     padding: 0.5rem 1rem;
-    border: 1px solid var(--category-color);
+    border: 1px solid;
     border-radius: 4px;
     transition: all 0.2s ease;
 }
 
 .read-more:hover {
     background-color: var(--category-color);
-    color: white;
+    color: white !important;
     text-decoration: none;
 }
 
@@ -188,14 +187,13 @@
     align-items: center;
     padding: 0.5rem;
     text-decoration: none;
-    color: #666;
     border-radius: 4px;
     transition: all 0.2s ease;
 }
 
 .categories-list a:hover {
     background-color: #f8f9fa;
-    color: var(--category-color);
+    opacity: 0.8;
 }
 
 .article-count {
@@ -204,6 +202,19 @@
     border-radius: 12px;
     font-size: 0.8rem;
     color: #666;
+}
+
+.category-badge {
+    color: white !important;
+    text-decoration: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: opacity 0.2s ease;
+}
+
+.category-badge:hover {
+    opacity: 0.8;
+    color: white !important;
 }
 </style>
 {% endblock %} 

@@ -2,6 +2,22 @@
 
 {% block title %}Gérer les catégories - PowerDataLab{% endblock %}
 
+{% block head %}
+{{ super() }}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<script>
+    // Vérifier que le token CSRF est présent au chargement de la page
+    document.addEventListener('DOMContentLoaded', function() {
+        const metaToken = document.querySelector('meta[name="csrf-token"]');
+        if (!metaToken || !metaToken.getAttribute('content')) {
+            console.error('Token CSRF non trouvé dans meta tag');
+        } else {
+            console.log('Token CSRF trouvé:', metaToken.getAttribute('content'));
+        }
+    });
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="row mb-3">
@@ -83,7 +99,8 @@
                 <h5 class="modal-title">Nouvelle catégorie</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ url_for('new_category') }}" method="POST">
+            <form id="addCategoryForm" action="{{ url_for('new_category') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="name" class="form-label">Nom</label>
@@ -115,7 +132,8 @@
                 <h5 class="modal-title">Modifier la catégorie</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="editCategoryForm" method="POST">
+            <form id="editCategoryForm" action="{{ url_for('edit_category', category_id=0) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="edit_name" class="form-label">Nom</label>
@@ -188,52 +206,118 @@
 
 {% block extra_js %}
 <script>
-function editCategory(categoryId) {
-    // Récupérer les données de la catégorie
-    fetch(`/admin/categories/edit/${categoryId}`)
+    // Fonction pour éditer une catégorie
+    function editCategory(categoryId) {
+        // D'abord, obtenir un nouveau token CSRF
+        fetch('/get-csrf-token', {
+            credentials: 'same-origin'  // Important pour envoyer les cookies de session
+        })
         .then(response => response.json())
         .then(data => {
-            // Remplir le formulaire
+            // Mettre à jour le token CSRF dans le formulaire
+            document.querySelector('#editCategoryForm input[name="csrf_token"]').value = data.csrf_token;
+            
+            // Mettre à jour l'action du formulaire avec l'ID de la catégorie
+            const form = document.getElementById('editCategoryForm');
+            form.action = "{{ url_for('edit_category', category_id=0) }}".replace('0', categoryId);
+            
+            // Récupérer les données de la catégorie
+            return fetch(`/admin/categories/edit/${categoryId}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'  // Important pour envoyer les cookies de session
+            });
+        })
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Session expirée. Veuillez vous reconnecter.');
+                }
+                return response.text().then(text => {
+                    throw new Error(`Erreur serveur (${response.status}): ${text}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            // Remplir le formulaire avec les données
             document.getElementById('edit_name').value = data.name;
             document.getElementById('edit_color').value = data.color;
-            document.getElementById('edit_description').value = data.description;
-            
-            // Mettre à jour l'action du formulaire
-            document.getElementById('editCategoryForm').action = `/admin/categories/edit/${categoryId}`;
+            document.getElementById('edit_description').value = data.description || '';
             
             // Afficher le modal
             new bootstrap.Modal(document.getElementById('editCategoryModal')).show();
         })
         .catch(error => {
             console.error('Erreur:', error);
-            alert('Erreur lors de la récupération des données de la catégorie');
+            if (error.message.includes('Session expirée')) {
+                // Rediriger vers la page de login
+                window.location.href = "{{ url_for('login') }}";
+            } else {
+                alert('Erreur lors de la récupération des données de la catégorie: ' + error.message);
+            }
         });
-}
+    }
 
-// Gérer la soumission du formulaire de modification
-document.getElementById('editCategoryForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const formData = new FormData(this);
-    
-    fetch(this.action, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (response.ok) {
-            window.location.reload();
-        } else {
-            throw new Error('Erreur lors de la modification');
-        }
-    })
-    .catch(error => {
-        console.error('Erreur:', error);
-        alert('Erreur lors de la modification de la catégorie');
+    // Gestionnaire pour le modal d'ajout
+    document.getElementById('addCategoryModal').addEventListener('show.bs.modal', function () {
+        console.log('Modal d\'ajout ouvert, récupération du token CSRF...');
+        // Obtenir un nouveau token CSRF avant d'ouvrir le modal
+        fetch('/get-csrf-token', {
+            credentials: 'same-origin'  // Important pour envoyer les cookies de session
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Nouveau token CSRF reçu:', data.csrf_token);
+            // Mettre à jour le token CSRF dans le formulaire
+            const tokenInput = document.querySelector('#addCategoryForm input[name="csrf_token"]');
+            tokenInput.value = data.csrf_token;
+            console.log('Token CSRF mis à jour dans le formulaire:', tokenInput.value);
+        })
+        .catch(error => {
+            console.error('Erreur lors de la récupération du token CSRF:', error);
+            alert('Erreur lors de l\'initialisation du formulaire. Veuillez réessayer.');
+        });
     });
-});
 
-function confirmDelete(categoryId) {
-    return confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?');
-}
+    // Ajouter un gestionnaire pour le soumission du formulaire
+    document.getElementById('addCategoryForm').addEventListener('submit', function(event) {
+        const tokenInput = document.querySelector('#addCategoryForm input[name="csrf_token"]');
+        console.log('Formulaire soumis avec le token CSRF:', tokenInput.value);
+    });
+
+    // Gestionnaire pour les formulaires de suppression
+    document.querySelectorAll('form[action*="/delete/"]').forEach(form => {
+        form.addEventListener('submit', function(event) {
+            event.preventDefault(); // Empêcher la soumission immédiate
+            console.log('Formulaire de suppression soumis, récupération du token CSRF...');
+            
+            fetch('/get-csrf-token', {
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Nouveau token CSRF reçu pour la suppression:', data.csrf_token);
+                // Ajouter le token CSRF au formulaire
+                const tokenInput = document.createElement('input');
+                tokenInput.type = 'hidden';
+                tokenInput.name = 'csrf_token';
+                tokenInput.value = data.csrf_token;
+                form.appendChild(tokenInput);
+                console.log('Token CSRF ajouté au formulaire de suppression');
+                // Soumettre le formulaire
+                form.submit();
+            })
+            .catch(error => {
+                console.error('Erreur lors de la récupération du token CSRF pour la suppression:', error);
+                alert('Erreur lors de la suppression. Veuillez réessayer.');
+            });
+        });
+    });
 </script>
 {% endblock %} 

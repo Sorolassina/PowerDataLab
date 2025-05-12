@@ -1,15 +1,36 @@
-version: "3.9"
-
 services:
   web:
     build: .
     ports:
-      - "5050:5050"
-    volumes:
-      - .:/app
-      - ./instance:/app/instance
-    env_file:
-      - .env
+      - "8050:8050"
     environment:
-      FLASK_ENV: production
-      SQLALCHEMY_DATABASE_URI: sqlite:///blog.db 
+      - DATABASE_URL=${DATABASE_URL}
+      - MAIL_SERVER=smtp.gmail.com
+      - MAIL_PORT=587
+      - MAIL_USE_TLS=true
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER}
+      - SECRET_KEY=${SECRET_KEY}
+      - WTF_CSRF_SECRET_KEY=${WTF_CSRF_SECRET_KEY}
+      - FLASK_ENV=production
+    volumes:
+      - ./static/uploads:/app/static/uploads
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=pdluser
+      - POSTGRES_PASSWORD=2311SLSS
+      - POSTGRES_DB=powerdatalab
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
