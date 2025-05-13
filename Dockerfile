@@ -16,4 +16,7 @@ EXPOSE 8050
 
 # Étape 6 : lancer l'app Flask avec le fichier .env
 #CMD ["sh", "-c", "python -m dotenv.cli && alembic upgrade head && python app.py"]
-CMD ["sh", "-c", "alembic upgrade head && python app.py"]
+#CMD ["sh", "-c", "alembic upgrade head && python app.py"]
+CMD ["sh", "-c", "alembic stamp head && python app.py"]
+
+ 
