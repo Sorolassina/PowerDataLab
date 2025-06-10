@@ -413,4 +413,14 @@
       margin: 1rem auto;
       padding: 1.5rem;
     }
+  }
+
+  p {
+    margin-top: 0.3em;
+    margin-bottom: 0.3em;
   } 
+  /* Pour forcer le retour à la ligne dans les paragraphes et le contenu des articles */
+  p, .article-content {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }

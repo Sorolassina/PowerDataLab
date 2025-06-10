@@ -41,15 +41,13 @@ def allowed_file(filename):
 # Chargement des variables d'environnement
 load_dotenv()
 print("Variables d'environnement chargées :")
+print(f"FLASK_ENV: {os.environ.get('FLASK_ENV')}")
 print(f"MAIL_SERVER: {os.environ.get('MAIL_SERVER')}")
 print(f"MAIL_PORT: {os.environ.get('MAIL_PORT')}")
 print(f"MAIL_USE_TLS: {os.environ.get('MAIL_USE_TLS')}")
 print(f"MAIL_USERNAME: {os.environ.get('MAIL_USERNAME')}")
 print(f"MAIL_PASSWORD: {'Présent' if os.environ.get('MAIL_PASSWORD') else 'Manquant'}")
 print(f"MAIL_DEFAULT_SENDER: {os.environ.get('MAIL_DEFAULT_SENDER')}")
-print(f"DATABASE_URL: {os.environ.get('DATABASE_URL')}")
-
-
 
 app = Flask(__name__)
 app.config.update(
@@ -70,7 +68,23 @@ app.config.update(
 csrf = CSRFProtect(app)
 
 # Configuration de la base de données
-DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://pdluser:2311SLSS@localhost:5432/powerdatalab')
+DB_NAME = os.environ.get('DB_NAME', 'powerdatalab')
+DB_USER = os.environ.get('DB_USER', 'pdluser')
+DB_PASSWORD = os.environ.get('DB_PASSWORD', '2311SLSS')
+DB_PORT = os.environ.get('DB_PORT', '5432')
+
+# Sélection du host selon l'environnement
+FLASK_ENV = os.environ.get('FLASK_ENV', 'development').lower()
+if FLASK_ENV == 'production':
+    DB_HOST = 'db'
+    print(f"Mode production - Utilisation de DB_HOST: {DB_HOST}")
+else:
+    DB_HOST = 'localhost'
+    print(f"Mode développement - Utilisation de DB_HOST_DEV: {DB_HOST}")
+
+DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+print(f"DATABASE_URL: {DATABASE_URL}")
+
 engine = create_engine(DATABASE_URL)
 db_session = scoped_session(sessionmaker(bind=engine))
 
