@@ -18,7 +18,7 @@ load_dotenv()
 
 # Importation de nos modèles
 from models import Base
-from models import User, Category, Article, Comment, Newsletter, NewsletterSubscriber, NewsletterHistory, PageView
+from models import User, Project, Category, Article, Comment, Newsletter, NewsletterSubscriber, NewsletterHistory, PageView
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

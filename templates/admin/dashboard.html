@@ -6,7 +6,7 @@
 <div class="container mt-4">
     <div class="row mb-3">
         <div class="col-12">
-            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+            <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
                 <i class="fas fa-home"></i> Retour à l'accueil
             </a>
         </div>
@@ -23,22 +23,22 @@
                 <div class="card-body">
                     <div class="row g-2">
                         <div class="col">
-                            <a href="{{ url_for('manage_articles') }}" class="btn btn-primary w-100">
+                            <a href="{{ url_for('article.manage_articles') }}" class="btn btn-primary w-100">
                                 <i class="fas fa-newspaper"></i> Gérer les articles
                             </a>
                         </div>
                         <div class="col">
-                            <a href="{{ url_for('manage_newsletter') }}" class="btn btn-info w-100">
+                            <a href="{{ url_for('admin.manage_newsletter') }}" class="btn btn-info w-100">
                                 <i class="fas fa-envelope"></i> Newsletter
                             </a>
                         </div>
                         <div class="col">
-                            <a href="{{ url_for('manage_categories') }}" class="btn btn-warning w-100">
+                            <a href="{{ url_for('category.manage_categories') }}" class="btn btn-warning w-100">
                                 <i class="fas fa-tags"></i> Gérer les catégories
                             </a>
                         </div>
                         <div class="col">
-                            <a href="{{ url_for('manage_users') }}" class="btn btn-secondary w-100">
+                            <a href="{{ url_for('user.manage_users') }}" class="btn btn-secondary w-100">
                                 <i class="fas fa-users"></i> Gérer les utilisateurs
                             </a>
                         </div>
@@ -55,7 +55,7 @@
                 <div class="card-body">
                     <h5 class="card-title">Articles</h5>
                     <p class="card-text display-4">{{ articles|length }}</p>
-                    <a href="{{ url_for('manage_articles') }}" class="btn btn-primary">Gérer</a>
+                    <a href="{{ url_for('article.manage_articles') }}" class="btn btn-primary">Gérer</a>
                 </div>
             </div>
         </div>
@@ -65,7 +65,7 @@
                 <div class="card-body">
                     <h5 class="card-title">Catégories</h5>
                     <p class="card-text display-4">{{ categories|length }}</p>
-                    <a href="{{ url_for('manage_categories') }}" class="btn btn-primary">Gérer</a>
+                    <a href="{{ url_for('category.manage_categories') }}" class="btn btn-primary">Gérer</a>
                 </div>
             </div>
         </div>
@@ -75,7 +75,7 @@
                 <div class="card-body">
                     <h5 class="card-title">Commentaires</h5>
                     <p class="card-text display-4">{{ comments|length }}</p>
-                    <a href="{{ url_for('manage_comments') }}" class="btn btn-primary">Gérer</a>
+                    <a href="{{ url_for('comment.manage_comments') }}" class="btn btn-primary">Gérer</a>
                 </div>
             </div>
         </div>
@@ -85,7 +85,7 @@
                 <div class="card-body">
                     <h5 class="card-title">Analytics</h5>
                     <p class="card-text">Voir les statistiques</p>
-                    <a href="{{ url_for('analytics') }}" class="btn btn-primary">Voir</a>
+                    <a href="{{ url_for('admin.analytics') }}" class="btn btn-primary">Voir</a>
                 </div>
             </div>
         </div>
@@ -95,7 +95,7 @@
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Articles récents</h5>
-            <a href="{{ url_for('manage_articles') }}" class="btn btn-primary btn-sm">Voir tous</a>
+            <a href="{{ url_for('article.manage_articles') }}" class="btn btn-primary btn-sm">Voir tous</a>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -119,8 +119,8 @@
                             </td>
                             <td>{{ article.created_at_formatted }}</td>
                             <td>
-                                <a href="{{ url_for('edit_article', article_id=article.id) }}" class="btn btn-sm btn-primary">Modifier</a>
-                                <form action="{{ url_for('delete_article_route', article_id=article.id) }}" method="POST" class="d-inline">
+                                <a href="{{ url_for('article.edit_article', article_id=article.id) }}" class="btn btn-sm btn-primary">Modifier</a>
+                                <form action="{{ url_for('article.delete_article_route', article_id=article.id) }}" method="POST" class="d-inline">
                                     <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet article ?')">
                                         <i class="fas fa-trash"></i> Supprimer
                                     </button>
@@ -138,7 +138,7 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Commentaires récents</h5>
-            <a href="{{ url_for('manage_comments') }}" class="btn btn-primary btn-sm">Voir tous</a>
+            <a href="{{ url_for('comment.manage_comments') }}" class="btn btn-primary btn-sm">Voir tous</a>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -160,7 +160,7 @@
                             <td>{{ comment['content'][:50] }}...</td>
                             <td>{{ comment['created_at_formatted'] }}</td>
                             <td>
-                                <form action="{{ url_for('delete_comment_route', comment_id=comment['id']) }}" method="POST" class="d-inline">
+                                <form action="{{ url_for('comment.delete_comment_route', comment_id=comment['id']) }}" method="POST" class="d-inline">
                                     <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')">
                                         <i class="fas fa-trash"></i> Supprimer
                                     </button>

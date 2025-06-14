@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}Gérer les commentaires - PowerDataLab{% endblock %}
+{% block title %}Gérer les commentaires - Powerdataanalytics{% endblock %}
 
 {% block content %}
 <div class="admin-container">
     <div class="admin-sidebar">
         <ul class="admin-menu">
-            <li><a href="{{ url_for('admin') }}"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
-            <li><a href="{{ url_for('manage_articles') }}"><i class="fas fa-list"></i> Articles</a></li>
-            <li><a href="{{ url_for('manage_comments') }}" class="active"><i class="fas fa-comments"></i> Commentaires</a></li>
-            <li><a href="{{ url_for('manage_newsletter') }}"><i class="fas fa-envelope"></i> Newsletters</a></li>
+            <li><a href="{{ url_for('admin.admin_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
+            <li><a href="{{ url_for('article.manage_articles') }}"><i class="fas fa-list"></i> Articles</a></li>
+            <li><a href="{{ url_for('comment.manage_comments') }}" class="active"><i class="fas fa-comments"></i> Commentaires</a></li>
+            <li><a href="{{ url_for('admin.manage_newsletter') }}"><i class="fas fa-envelope"></i> Newsletters</a></li>
         </ul>
     </div>
 
@@ -24,14 +24,14 @@
                         <i class="fas fa-user"></i> {{ comment['author_name'] }}
                     </div>
                     <div class="comment-actions">
-                        <form action="{{ url_for('toggle_comment', comment_id=comment['id']) }}" method="POST" class="d-inline">
+                        <form action="{{ url_for('comment.toggle_comment', comment_id=comment['id']) }}" method="POST" class="d-inline">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-{{ 'success' if not comment['is_approved'] else 'warning' }} btn-sm">
                                 <i class="fas fa-{{ 'check' if not comment['is_approved'] else 'times' }}"></i>
                                 {{ 'Approuver' if not comment['is_approved'] else 'Désapprouver' }}
                             </button>
                         </form>
-                        <form action="{{ url_for('delete_comment_route', comment_id=comment['id']) }}" method="POST" class="d-inline">
+                        <form action="{{ url_for('comment.delete_comment_route', comment_id=comment['id']) }}" method="POST" class="d-inline">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')">
                                 <i class="fas fa-trash"></i> Supprimer
@@ -56,7 +56,7 @@
         <!-- Pagination -->
         <div class="pagination">
             {% if comments.has_prev %}
-            <a href="{{ url_for('manage_comments', page=comments.prev_num) }}" class="btn btn-secondary">
+            <a href="{{ url_for('comment.manage_comments', page=comments.prev_num) }}" class="btn btn-secondary">
                 <i class="fas fa-chevron-left"></i> Précédent
             </a>
             {% endif %}
@@ -66,7 +66,7 @@
             </span>
 
             {% if comments.has_next %}
-            <a href="{{ url_for('manage_comments', page=comments.next_num) }}" class="btn btn-secondary">
+            <a href="{{ url_for('comment.manage_comments', page=comments.next_num) }}" class="btn btn-secondary">
                 Suivant <i class="fas fa-chevron-right"></i>
             </a>
             {% endif %}

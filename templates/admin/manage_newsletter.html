@@ -1,17 +1,30 @@
 {% extends "base.html" %}
 
-{% block title %}Gérer la newsletter - PowerDataLab{% endblock %}
+{% block title %}Gérer la newsletter - Powerdataanalytics{% endblock %}
+
+{% block head %}
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+{% endblock %}
 
 {% block content %}
+<!-- Ajout du token CSRF -->
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
 <div class="admin-container">
     <div class="admin-sidebar">
         <ul class="admin-menu">
-            <li><a href="{{ url_for('admin') }}"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
-            <li><a href="{{ url_for('manage_articles') }}"><i class="fas fa-list"></i> Articles</a></li>
-            <li><a href="{{ url_for('create_article') }}"><i class="fas fa-plus"></i> Créer un article</a></li>
-            <li><a href="{{ url_for('manage_comments') }}"><i class="fas fa-comments"></i> Commentaires</a></li>
-            <li><a href="{{ url_for('manage_users') }}"><i class="fas fa-users"></i> Utilisateurs</a></li>
-            <li><a href="{{ url_for('manage_newsletter') }}" class="active"><i class="fas fa-envelope"></i> Newsletters</a></li>
+            <li><a href="{{ url_for('admin.admin_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
+            <li><a href="{{ url_for('article.manage_articles') }}"><i class="fas fa-list"></i> Articles</a></li>
+            <li><a href="{{ url_for('article.new_article') }}"><i class="fas fa-plus"></i> Créer un article</a></li>
+            <li><a href="{{ url_for('comment.manage_comments') }}"><i class="fas fa-comments"></i> Commentaires</a></li>
+            <li><a href="{{ url_for('user.manage_users') }}"><i class="fas fa-users"></i> Utilisateurs</a></li>
+            <li><a href="{{ url_for('admin.manage_newsletter') }}" class="active"><i class="fas fa-envelope"></i> Newsletters</a></li>
         </ul>
     </div>
 
@@ -23,14 +36,14 @@
                 <i class="fas fa-paper-plane"></i> Envoyer une newsletter
             </button>
             {% if newsletter %}
-            <a href="{{ url_for('edit_newsletter', newsletter_id=newsletter.id) }}" class="btn btn-warning">
+            <a href="{{ url_for('admin.edit_newsletter', newsletter_id=newsletter.id) }}" class="btn btn-warning">
                 <i class="fas fa-edit"></i> Modifier la dernière newsletter
             </a>
             {% endif %}
             <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#importSubscribersModal">
                 <i class="fas fa-file-import"></i> Importer des abonnés
             </button>
-            <a href="{{ url_for('export_subscribers') }}" class="btn btn-info">
+            <a href="{{ url_for('admin.export_subscribers') }}" class="btn btn-info">
                 <i class="fas fa-file-export"></i> Exporter les abonnés
             </a>
         </div>
@@ -38,7 +51,7 @@
         <!-- Historique des newsletters -->
         <div class="newsletter-history">
             <h2>Historique des newsletters</h2>
-            {% if newsletter_history %}
+            {% if newsletter_history.items %}
             <div class="table-responsive">
                 <table class="table table-striped">
                     <thead>
@@ -52,7 +65,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for newsletter in newsletter_history %}
+                        {% for newsletter in newsletter_history.items %}
                         <tr>
                             <td>{{ newsletter.sent_at_formatted }}</td>
                             <td>{{ newsletter.subject }}</td>
@@ -74,6 +87,25 @@
                         {% endfor %}
                     </tbody>
                 </table>
+
+                <!-- Pagination pour l'historique -->
+                <div class="pagination history-pagination">
+                    {% if newsletter_history.has_prev %}
+                    <a href="{{ url_for('admin.manage_newsletter', history_page=newsletter_history.prev_num, subscribers_page=subscribers.page) }}" class="btn btn-secondary">
+                        <i class="fas fa-chevron-left"></i> Précédent
+                    </a>
+                    {% endif %}
+
+                    <span class="current-page">
+                        <strong>Historique :</strong> Page {{ newsletter_history.page }} sur {{ newsletter_history.pages }}
+                    </span>
+
+                    {% if newsletter_history.has_next %}
+                    <a href="{{ url_for('admin.manage_newsletter', history_page=newsletter_history.next_num, subscribers_page=subscribers.page) }}" class="btn btn-secondary">
+                        Suivant <i class="fas fa-chevron-right"></i>
+                    </a>
+                    {% endif %}
+                </div>
             </div>
             {% else %}
             <div class="alert alert-info">
@@ -117,20 +149,20 @@
             {% endfor %}
         </div>
 
-        <!-- Pagination -->
-        <div class="pagination">
+        <!-- Pagination pour les abonnés -->
+        <div class="pagination subscribers-pagination">
             {% if subscribers.has_prev %}
-            <a href="{{ url_for('manage_newsletter', page=subscribers.prev_num) }}" class="btn btn-secondary">
+            <a href="{{ url_for('admin.manage_newsletter', subscribers_page=subscribers.prev_num, history_page=newsletter_history.page) }}" class="btn btn-secondary">
                 <i class="fas fa-chevron-left"></i> Précédent
             </a>
             {% endif %}
 
             <span class="current-page">
-                Page {{ subscribers.page }} sur {{ subscribers.pages }}
+                <strong>Abonnés :</strong> Page {{ subscribers.page }} sur {{ subscribers.pages }}
             </span>
 
             {% if subscribers.has_next %}
-            <a href="{{ url_for('manage_newsletter', page=subscribers.next_num) }}" class="btn btn-secondary">
+            <a href="{{ url_for('admin.manage_newsletter', subscribers_page=subscribers.next_num, history_page=newsletter_history.page) }}" class="btn btn-secondary">
                 Suivant <i class="fas fa-chevron-right"></i>
             </a>
             {% endif %}
@@ -158,38 +190,52 @@
                         <textarea class="form-control" id="content" name="content" rows="5" required></textarea>
                     </div>
                     
-                    <!-- Nouvelle section pour la sélection des destinataires -->
+                    <!-- Section des destinataires -->
                     <div class="mb-3">
                         <label class="form-label">Destinataires</label>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="recipient_type" id="allSubscribers" value="all" checked>
+                            <input class="form-check-input" type="radio" name="recipient_type" id="allSubscribers" value="all" checked onchange="updateRecipientSelection()">
                             <label class="form-check-label" for="allSubscribers">
-                                Tous les abonnés actifs
+                                Tous les destinataires (utilisateurs du site et abonnés newsletter)
                             </label>
                         </div>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="recipient_type" id="selectedSubscribers" value="selected">
+                            <input class="form-check-input" type="radio" name="recipient_type" id="selectedSubscribers" value="selected" onchange="updateRecipientSelection()">
                             <label class="form-check-label" for="selectedSubscribers">
                                 Sélectionner des abonnés
                             </label>
                         </div>
                         
-                        <!-- Liste des abonnés à sélectionner -->
-                        <div id="subscribersList" class="subscribers-selection" style="display: none; max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px; padding: 1rem; margin-top: 1rem;">
-                            {% for subscriber in subscribers.items %}
-                            <div class="form-check">
-                                <input class="form-check-input subscriber-checkbox" type="checkbox" name="subscribers[]" value="{{ subscriber.id }}" id="subscriber{{ subscriber.id }}" {% if subscriber.status != 'active' %}disabled{% endif %}>
-                                <label class="form-check-label" for="subscriber{{ subscriber.id }}">
-                                    {{ subscriber.email }}
-                                    {% if subscriber.status != 'active' %}
-                                    <span class="badge bg-secondary">Inactif</span>
-                                    {% endif %}
-                                </label>
+                        <!-- Liste des abonnés avec Select2 -->
+                        <div id="subscribersList" style="display: none;" class="mb-3">
+                            <div class="input-group mb-2">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control" id="subscriberSearch" placeholder="Rechercher par email ou nom...">
                             </div>
-                            {% endfor %}
+                            <select class="form-select" id="subscribers" name="subscribers[]" multiple style="width: 100%;">
+                                {% for recipient in subscribers.items %}
+                                <option value="{{ recipient.id }}" {% if recipient.status != 'active' %}disabled{% endif %}>
+                                    {% if recipient.type == 'user' %}
+                                    👤 {{ recipient.email }} ({{ recipient.name }})
+                                    {% else %}
+                                    📧 {{ recipient.email }}
+                                    {% endif %}
+                                    {% if recipient.status != 'active' %}(Inactif){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="mt-2 d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    👤 = Utilisateur du site | 📧 = Abonné newsletter
+                                </small>
+                                <span id="selectedCount" class="badge bg-primary">0 sélectionné(s)</span>
+                            </div>
                         </div>
                     </div>
                     
+                    <!-- Section des articles -->
                     <div class="mb-3">
                         <label class="form-label">Articles à inclure</label>
                         <div class="articles-list">
@@ -203,17 +249,21 @@
                             {% endfor %}
                         </div>
                     </div>
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="testSend" name="test_send">
-                        <label class="form-check-label" for="testSend">
-                            Envoyer un test à mon adresse email
-                        </label>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="test_send" id="testSend">
+                            <label class="form-check-label" for="testSend">
+                                Envoi de test (uniquement à l'administrateur)
+                            </label>
+                        </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                <button type="button" class="btn btn-primary" onclick="sendNewsletter()">Envoyer</button>
+                <button type="button" class="btn btn-outline-secondary" title="Annuler la sélection" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" title="Confirmer l'envoi" onclick="sendNewsletter()">Envoyer</button>
+                <button type="button" class="btn btn-secondary" title="Fermer la fenêtre" data-bs-dismiss="modal">Fermer</button>
             </div>
         </div>
     </div>
@@ -257,7 +307,7 @@
                 <div id="newsletterContent"></div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                <button type="button" class="btn btn-secondary" title="Fermer" data-bs-dismiss="modal">Fermer</button>
             </div>
         </div>
     </div>
@@ -401,11 +451,29 @@
     justify-content: center;
     align-items: center;
     gap: 1rem;
-    margin-top: 2rem;
+    margin: 1.5rem 0;
+}
+
+.history-pagination {
+    background-color: #f8f9fa;
+    padding: 0.5rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+}
+
+.subscribers-pagination {
+    background-color: #e9ecef;
+    padding: 0.5rem;
+    border-radius: 4px;
 }
 
 .current-page {
-    color: #666;
+    color: #495057;
+    font-size: 0.95rem;
+}
+
+.current-page strong {
+    color: #212529;
 }
 
 .articles-list {
@@ -435,12 +503,10 @@ function deleteSubscriber(subscriberId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Supprimer la carte de l'abonné sans recharger la page
             const subscriberCard = document.querySelector(`.subscriber-card[data-subscriber-id="${subscriberId}"]`);
             if (subscriberCard) {
                 subscriberCard.remove();
             } else {
-                // Si on ne trouve pas la carte, recharger la page
                 window.location.reload();
             }
         } else {
@@ -454,81 +520,139 @@ function deleteSubscriber(subscriberId) {
 }
 
 function toggleSubscriberStatus(subscriberId, action) {
+    if (!confirm(`Êtes-vous sûr de vouloir ${action === 'resubscribe' ? 'réabonner' : 'désabonner'} cet utilisateur ?`)) {
+        return;
+    }
+
+    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+    
     fetch(`/admin/newsletter/subscribers/${subscriberId}/${action}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        }
+            'X-CSRFToken': csrfToken
+        },
+        credentials: 'same-origin'
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Mettre à jour le statut sans recharger la page
-            const subscriberCard = document.querySelector(`.subscriber-card[data-subscriber-id="${subscriberId}"]`);
-            if (subscriberCard) {
-                const statusSpan = subscriberCard.querySelector('.subscriber-status');
-                const toggleButton = subscriberCard.querySelector('.subscriber-actions button');
-                
-                if (action === 'unsubscribe') {
-                    statusSpan.textContent = 'inactive';
-                    statusSpan.className = 'subscriber-status inactive';
-                    toggleButton.className = 'btn btn-success btn-sm';
-                    toggleButton.innerHTML = '<i class="fas fa-check"></i> Réabonner';
-                    toggleButton.onclick = () => toggleSubscriberStatus(subscriberId, 'resubscribe');
-                } else {
-                    statusSpan.textContent = 'active';
-                    statusSpan.className = 'subscriber-status active';
-                    toggleButton.className = 'btn btn-warning btn-sm';
-                    toggleButton.innerHTML = '<i class="fas fa-ban"></i> Désabonner';
-                    toggleButton.onclick = () => toggleSubscriberStatus(subscriberId, 'unsubscribe');
-                }
-            } else {
-                // Si on ne trouve pas la carte, recharger la page
-                window.location.reload();
-            }
+            window.location.reload();
         } else {
-            alert(data.message || 'Erreur lors du changement de statut de l\'abonné');
+            alert(data.message || 'Erreur lors de la modification du statut');
         }
     })
     .catch(error => {
         console.error('Erreur:', error);
-        alert('Erreur lors du changement de statut de l\'abonné');
+        alert('Erreur lors de la modification du statut');
     });
 }
 
-// Ajouter la gestion de l'affichage de la liste des abonnés
-document.addEventListener('DOMContentLoaded', function() {
-    const allSubscribersRadio = document.getElementById('allSubscribers');
-    const selectedSubscribersRadio = document.getElementById('selectedSubscribers');
-    const subscribersList = document.getElementById('subscribersList');
-    const subscriberCheckboxes = document.querySelectorAll('.subscriber-checkbox');
-
-    function updateSubscribersList() {
-        if (selectedSubscribersRadio.checked) {
-            subscribersList.style.display = 'block';
+function viewNewsletterContent(newsletterId) {
+    fetch(`/admin/newsletter/${newsletterId}/content`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('newsletterContent').innerHTML = data.content;
+            new bootstrap.Modal(document.getElementById('viewNewsletterModal')).show();
         } else {
-            subscribersList.style.display = 'none';
-            // Décocher toutes les cases
-            subscriberCheckboxes.forEach(checkbox => checkbox.checked = false);
+            alert(data.message || 'Erreur lors de la récupération du contenu');
         }
-    }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la récupération du contenu');
+    });
+}
 
-    allSubscribersRadio.addEventListener('change', updateSubscribersList);
-    selectedSubscribersRadio.addEventListener('change', updateSubscribersList);
+function updateRecipientSelection() {
+    const recipientType = document.querySelector('input[name="recipient_type"]:checked').value;
+    const subscribersList = document.getElementById('subscribersList');
+    subscribersList.style.display = recipientType === 'selected' ? 'block' : 'none';
+    
+    if (recipientType === 'selected') {
+        $('#subscribers').select2('open');
+        $('#subscriberSearch').focus();
+    }
+}
+
+function importSubscribers() {
+    const form = document.getElementById('importSubscribersForm');
+    const formData = new FormData(form);
+    
+    fetch('/admin/newsletter/subscribers/import', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Import réussi !');
+            window.location.reload();
+        } else {
+            alert(data.message || 'Erreur lors de l\'import');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Erreur lors de l\'import');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof jQuery != 'undefined') {
+        console.log('jQuery est chargé !');
+        
+        // Initialisation de Select2
+        var $select = $('#subscribers');
+        console.log('Élément select trouvé:', $select.length > 0);
+        
+        $select.select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Sélectionnez des destinataires',
+            allowClear: true,
+            language: {
+                noResults: function() {
+                    return "Aucun destinataire trouvé";
+                },
+                searching: function() {
+                    return "Recherche en cours...";
+                }
+            }
+        });
+
+        // Mise à jour du compteur lors de la sélection/désélection
+        $select.on('select2:select select2:unselect', function(e) {
+            console.log('Événement de sélection détecté');
+            var selectedCount = $(this).val() ? $(this).val().length : 0;
+            console.log('Nombre de sélections:', selectedCount);
+            $('#selectedCount').text(selectedCount + ' sélectionné(s)');
+        });
+
+        // Gestionnaire de recherche manuelle
+        $('#subscriberSearch').on('input', function() {
+            var searchTerm = $(this).val();
+            $select.val(null).trigger('change');
+            $select.select2('open');
+            $('.select2-search__field').val(searchTerm).trigger('input');
+        });
+    } else {
+        console.error('jQuery n\'est pas chargé !');
+    }
 });
 
+// Fonction d'envoi de la newsletter
 function sendNewsletter() {
     const form = document.getElementById('sendNewsletterForm');
     const formData = new FormData(form);
     const csrfToken = formData.get('csrf_token');
     
-    // Récupérer le type de destinataires
     const recipientType = formData.get('recipient_type');
     let subscribers = [];
     
     if (recipientType === 'selected') {
-        subscribers = Array.from(formData.getAll('subscribers[]')).map(id => parseInt(id));
+        subscribers = $('#subscribers').val().map(id => parseInt(id));
         if (subscribers.length === 0) {
             alert('Veuillez sélectionner au moins un destinataire');
             return;
@@ -555,10 +679,8 @@ function sendNewsletter() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Fermer le modal
             bootstrap.Modal.getInstance(document.getElementById('sendNewsletterModal')).hide();
             alert('Newsletter envoyée avec succès !');
-            // Recharger la page pour afficher la nouvelle newsletter dans l'historique
             window.location.reload();
         } else {
             alert(data.message || 'Erreur lors de l\'envoi de la newsletter');
@@ -568,53 +690,6 @@ function sendNewsletter() {
         console.error('Erreur:', error);
         alert('Erreur lors de l\'envoi de la newsletter');
     });
-}
-
-function importSubscribers() {
-    const form = document.getElementById('importSubscribersForm');
-    const formData = new FormData(form);
-    const csrfToken = formData.get('csrf_token');
-    
-    fetch('/admin/newsletter/import', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': csrfToken
-        },
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Fermer le modal
-            bootstrap.Modal.getInstance(document.getElementById('importSubscribersModal')).hide();
-            alert('Abonnés importés avec succès !');
-            // Recharger la page pour afficher les nouveaux abonnés
-            window.location.reload();
-        } else {
-            alert(data.message || 'Erreur lors de l\'import des abonnés');
-        }
-    })
-    .catch(error => {
-        console.error('Erreur:', error);
-        alert('Erreur lors de l\'import des abonnés');
-    });
-}
-
-function viewNewsletterContent(newsletterId) {
-    fetch(`/admin/newsletter/${newsletterId}/content`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('newsletterContent').innerHTML = data.content;
-                new bootstrap.Modal(document.getElementById('viewNewsletterModal')).show();
-            } else {
-                alert('Erreur lors de la récupération du contenu de la newsletter');
-            }
-        })
-        .catch(error => {
-            console.error('Erreur:', error);
-            alert('Erreur lors de la récupération du contenu de la newsletter');
-        });
 }
 </script>
 {% endblock %} 

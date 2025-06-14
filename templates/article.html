@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ article['title'] }} - PowerDataLab{% endblock %}
+{% block title %}{{ article['title'] }} - Powerdataanalytics{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -14,10 +14,55 @@
                     {% endfor %}
                 </div>
                 {% endif %}
+
+                <header class="article-header mb-4">
+                    <h1 class="article-title">{{ article['title'] }}</h1>
+                    <div class="article-meta text-muted">
+                        <span><i class="fas fa-user"></i> {{ article['author_name'] }}</span>
+                        <span class="mx-2">|</span>
+                        <span><i class="far fa-calendar-alt"></i> {{ article['created_at_formatted'] }}</span>
+                        {% if article['category_name'] %}
+                        <span class="mx-2">|</span>
+                        <span><i class="fas fa-folder"></i> {{ article['category_name'] }}</span>
+                        {% endif %}
+                    </div>
+                </header>
                 
-                <div class="article-content">
-                    {{ article['content']|replace('\n', '<br>')|safe }}
+                <div class="article-content prose">
+                    {{ article['content']|safe }}
                 </div>
+
+                {% if article['documents'] %}
+                <div class="article-documents mt-5">
+                    <h4 class="mb-3"><i class="fas fa-file-alt"></i> Documents associés</h4>
+                    <div class="list-group">
+                        {% for doc in article['documents'] %}
+                        <a href="{{ url_for('static', filename=doc.file_path) }}" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                           target="_blank"
+                           title="Télécharger {{ doc.original_filename }}">
+                            <span>
+                                {% if doc.file_type in ['pdf'] %}
+                                <i class="fas fa-file-pdf text-danger me-2"></i>
+                                {% elif doc.file_type in ['doc', 'docx'] %}
+                                <i class="fas fa-file-word text-primary me-2"></i>
+                                {% elif doc.file_type in ['xls', 'xlsx'] %}
+                                <i class="fas fa-file-excel text-success me-2"></i>
+                                {% elif doc.file_type in ['ppt', 'pptx'] %}
+                                <i class="fas fa-file-powerpoint text-warning me-2"></i>
+                                {% else %}
+                                <i class="fas fa-file text-secondary me-2"></i>
+                                {% endif %}
+                                {{ doc.original_filename }}
+                            </span>
+                            <span class="badge bg-primary rounded-pill">
+                                <i class="fas fa-download"></i>
+                            </span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
                 
                 {% if article['tags'] %}
                 <div class="article-tags mt-4">
@@ -58,7 +103,7 @@
                 {% if current_user.is_authenticated %}
                 <div class="comment-form mt-4">
                     <h4>Laisser un commentaire</h4>
-                    <form method="POST" action="{{ url_for('add_comment', slug=article['slug']) }}">
+                    <form method="POST" action="{{ url_for('comment.add_comment', slug=article['slug']) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="form-group">
                             <textarea class="form-control" name="content" rows="4" required placeholder="Votre commentaire..."></textarea>
@@ -68,13 +113,280 @@
                 </div>
                 {% else %}
                 <div class="alert alert-info mt-4">
-                    <p class="mb-0">Pour laisser un commentaire, veuillez <a href="{{ url_for('login') }}">vous connecter</a> ou <a href="{{ url_for('register') }}">créer un compte</a>.</p>
+                    <p class="mb-0">Pour laisser un commentaire, veuillez <a href="{{ url_for('main.login') }}">vous connecter</a> ou <a href="{{ url_for('main.register') }}">créer un compte</a>.</p>
                 </div>
                 {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+<style>
+/* Styles pour le contenu de l'article */
+.article-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.article-meta {
+    font-size: 0.95rem;
+    color: #666;
+}
+
+.article-meta i {
+    margin-right: 0.3rem;
+}
+
+.prose {
+    max-width: 65ch;
+    margin: 0 auto;
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #2c3e50;
+}
+
+/* Styles d'alignement Quill */
+.prose .ql-align-center {
+    text-align: center;
+}
+
+.prose .ql-align-right {
+    text-align: right;
+}
+
+.prose .ql-align-justify {
+    text-align: justify;
+}
+
+.prose .ql-align-left {
+    text-align: left;
+}
+
+/* Tailles de texte Quill */
+.prose .ql-size-small {
+    font-size: 0.875em;
+}
+
+.prose .ql-size-large {
+    font-size: 1.25em;
+}
+
+.prose .ql-size-huge {
+    font-size: 1.5em;
+}
+
+/* Indentation Quill */
+.prose .ql-indent-1 {
+    padding-left: 3em;
+}
+
+.prose .ql-indent-2 {
+    padding-left: 6em;
+}
+
+.prose .ql-indent-3 {
+    padding-left: 9em;
+}
+
+/* Listes Quill */
+.prose .ql-list-ordered {
+    list-style-type: decimal;
+    padding-left: 1.5em;
+}
+
+.prose .ql-list-bullet {
+    list-style-type: disc;
+    padding-left: 1.5em;
+}
+
+/* Citations et blocs de code Quill */
+.prose .ql-blockquote {
+    border-left: 4px solid #3498db;
+    margin: 1.5rem 0;
+    padding: 1rem 1.5rem;
+    background-color: #f8f9fa;
+    font-style: italic;
+    color: #495057;
+}
+
+.prose .ql-code-block {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 4px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    margin: 1rem 0;
+}
+
+/* Scripts (exposant/indice) */
+.prose .ql-script-sub {
+    vertical-align: sub;
+    font-size: smaller;
+}
+
+.prose .ql-script-super {
+    vertical-align: super;
+    font-size: smaller;
+}
+
+/* Direction du texte */
+.prose .ql-direction-rtl {
+    direction: rtl;
+    text-align: right;
+}
+
+/* Styles de police */
+.prose .ql-font-serif {
+    font-family: Georgia, Times New Roman, serif;
+}
+
+.prose .ql-font-monospace {
+    font-family: Monaco, Courier New, monospace;
+}
+
+/* Gestion des images */
+.prose .ql-image {
+    max-width: 100%;
+    margin: 1rem 0;
+    border-radius: 4px;
+}
+
+/* Gestion des liens */
+.prose .ql-link {
+    color: #3498db;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.prose .ql-link:hover {
+    border-bottom-color: #3498db;
+}
+
+/* Styles de base */
+.prose h1 {
+    font-size: 2rem;
+    margin-top: 2.5rem;
+    margin-bottom: 1.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.prose h2 {
+    font-size: 1.7rem;
+    margin-top: 2rem;
+    margin-bottom: 1.2rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.prose h3 {
+    font-size: 1.4rem;
+    margin-top: 1.8rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.prose p {
+    margin-bottom: 0.5rem;
+}
+
+/* Gestion des paragraphes vides de Quill */
+.prose p:empty,
+.prose p:has(br):only-child {
+    margin: 0;
+    line-height: 0.5;
+}
+
+/* Ajustement pour les paragraphes avec style line-height */
+.prose p[style*="line-height: 1"] {
+    margin-bottom: 0.2rem;
+}
+
+/* Espacement pour les hashtags */
+.prose p:has(a[href*="hashtag"]) {
+    margin-top: 1rem;
+}
+
+/* Styles pour le texte en gras et italique */
+.prose strong {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.prose em {
+    font-style: italic;
+}
+
+/* Styles pour le texte barré et souligné */
+.prose .ql-strike {
+    text-decoration: line-through;
+}
+
+.prose .ql-underline {
+    text-decoration: underline;
+}
+
+/* Couleurs de fond et de texte */
+.prose .ql-bg-black { background-color: #000000; }
+.prose .ql-bg-red { background-color: #e60000; }
+.prose .ql-bg-orange { background-color: #f90; }
+.prose .ql-bg-yellow { background-color: #ff0; }
+.prose .ql-bg-green { background-color: #008a00; }
+.prose .ql-bg-blue { background-color: #06c; }
+.prose .ql-bg-purple { background-color: #93f; }
+
+.prose .ql-color-white { color: #ffffff; }
+.prose .ql-color-red { color: #e60000; }
+.prose .ql-color-orange { color: #f90; }
+.prose .ql-color-yellow { color: #ff0; }
+.prose .ql-color-green { color: #008a00; }
+.prose .ql-color-blue { color: #06c; }
+.prose .ql-color-purple { color: #93f; }
+
+/* Styles pour les tableaux */
+.prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.prose td,
+.prose th {
+    border: 1px solid #ddd;
+    padding: 0.5rem;
+}
+
+.prose th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+.prose tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+/* Styles pour les vidéos */
+.prose .ql-video {
+    width: 100%;
+    max-width: 600px;
+    height: auto;
+    aspect-ratio: 16/9;
+    margin: 1rem auto;
+}
+
+/* Styles pour les formules */
+.prose .ql-formula {
+    font-family: "KaTeX_Math-Italic", "Times New Roman", serif;
+    padding: 0.5rem;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    margin: 0.5rem 0;
+}
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -112,11 +424,6 @@ document.addEventListener('DOMContentLoaded', function() {
     padding: 2rem;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.article-content {
-    line-height: 1.8;
-    font-size: 1.1rem;
 }
 
 .article-images img {

@@ -1,8 +1,9 @@
 services:
   - type: web
-    name: powerdatalab-blog
+    name: powerdataanalytics-blog
     env: python
     buildCommand: pip install -r requirements.txt
+    preDeployCommand: alembic upgrade head
     startCommand: gunicorn app:app
     envVars:
       - key: FLASK_APP

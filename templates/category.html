@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ category.name }} - PowerDataLab{% endblock %}
+{% block title %}{{ category.name }} - Powerdataanalytics{% endblock %}
 
 {% block content %}
 <div class="row">
@@ -12,7 +12,7 @@
             {% endif %}
             <div class="card-body">
                 <h2 class="card-title">
-                    <a href="{{ url_for('article', slug=article.slug) }}" class="text-decoration-none">{{ article.title }}</a>
+                    <a href="{{ url_for('article.article', slug=article.slug) }}" class="text-decoration-none">{{ article.title }}</a>
                 </h2>
                 <p class="card-text text-muted">
                     <small>
@@ -21,7 +21,7 @@
                     </small>
                 </p>
                 <p class="card-text">{{ article.excerpt }}</p>
-                <a href="{{ url_for('article', slug=article.slug) }}" class="btn btn-primary">Lire la suite</a>
+                <a href="{{ url_for('article.article', slug=article.slug) }}" class="btn btn-primary">Lire la suite</a>
             </div>
         </article>
         {% else %}
@@ -34,11 +34,18 @@
             <div class="card-body">
                 <h3 class="card-title">Newsletter</h3>
                 <p class="card-text">Inscrivez-vous à notre newsletter pour recevoir nos derniers articles.</p>
-                <form action="{{ url_for('subscribe_newsletter') }}" method="post">
-                    <div class="mb-3">
-                        <input type="email" name="email" class="form-control" placeholder="Votre email" required>
+                <form action="{{ url_for('admin.subscribe_newsletter') }}" method="post" class="newsletter-form">
+                    {{ newsletter_form.csrf_token }}
+                    <div class="form-group">
+                        {{ newsletter_form.email(class="form-control", placeholder="Votre email") }}
+                        {% if newsletter_form.email.errors %}
+                            {% for error in newsletter_form.email.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    <div class="text-center"> 
+                    <button type="submit" class="btn btn-primary">S'abonner</button>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">S'inscrire</button>
                 </form>
             </div>
         </div>
@@ -48,11 +55,21 @@
                 <h3 class="card-title">Catégories</h3>
                 <ul class="list-group list-group-flush">
                     {% for cat in categories %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <a href="{{ url_for('category', slug=cat.slug) }}" class="text-decoration-none {% if cat.id == category.id %}fw-bold{% endif %}">
-                            {{ cat.name }}
-                        </a>
-                        <span class="badge bg-primary rounded-pill">{{ cat.article_count }}</span>
+                    <li class="list-group-item d-flex justify-content-between align-items-center" 
+                        style="position: relative; border-radius: 12px; border: 1px solid {{ cat.color_theme }}; overflow: hidden;">
+                        <!-- Fond avec opacité -->
+                        <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: {{ cat.color_theme }}; opacity: 0.1; z-index: 0;"></div>
+                        <!-- Contenu -->
+                        <div style="position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <a href="{{ url_for('category.category', slug=cat.slug) }}" 
+                               class="text-decoration-none {% if cat.id == category.id %}fw-bold{% endif %}" 
+                               style="color: {{ cat.color_theme }}">
+                                {{ cat.name }}
+                            </a>
+                            <span class="badge" style="background-color: {{ cat.color_theme }}; opacity: 0.5; border-radius: 20px;">
+                                {{ cat.article_count }}
+                            </span>
+                        </div>
                     </li>
                     {% endfor %}
                 </ul>
@@ -64,6 +81,25 @@
 
 {% block extra_css %}
 <style>
+.list-group-item {
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+}
+
+.list-group-item:hover {
+    transform: translateX(5px);
+}
+
+.badge {
+    padding: 0.5em 1em;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    color: white;
+}
+
+.newsletter-card {
+    margin-bottom: 2rem;
+}
 
 .articles-grid {
     display: grid;
@@ -140,6 +176,14 @@
 
 .read-more:hover {
     text-decoration: underline;
+}
+
+.newsletter-form .form-group {
+    margin-bottom: 10px !important;  /* Force l'espace avec !important */
+}
+
+.newsletter-form button {
+    margin-top: 10px;  /* Ajoute aussi un espace au-dessus du bouton */
 }
 
 @media (min-width: 768px) {

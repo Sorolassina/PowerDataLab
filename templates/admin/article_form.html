@@ -2,97 +2,27 @@
 
 {% block title %}{% if article %}Modifier l'article{% else %}Nouvel article{% endif %} - PowerDataLab{% endblock %}
 
-{% block content %}
-<div class="admin-container">
-    <div class="admin-sidebar">
-        <ul class="admin-menu">
-            <li><a href="{{ url_for('admin') }}"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
-            <li><a href="{{ url_for('manage_articles') }}" class="active"><i class="fas fa-list"></i> Gérer les articles</a></li>
-            <li><a href="{{ url_for('manage_comments') }}"><i class="fas fa-comments"></i> Commentaires</a></li>
-            <li><a href="{{ url_for('manage_newsletter') }}"><i class="fas fa-envelope"></i> Newsletter</a></li>
-        </ul>
-    </div>
-
-    <div class="admin-content">
-        <h1>{% if article %}Modifier l'article{% else %}Nouvel article{% endif %}</h1>
-        
-        <form method="POST" enctype="multipart/form-data" class="article-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="form-group">
-                <label for="title">Titre</label>
-                <input type="text" class="form-control" id="title" name="title" value="{{ article.title if article else '' }}" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="content">Contenu</label>
-                <textarea class="form-control" id="content" name="content" rows="10" required>{{ article.content if article else '' }}</textarea>
-            </div>
-            
-            <div class="form-group">
-                <label for="category_id">Catégorie</label>
-                <select class="form-control" id="category_id" name="category_id" required>
-                    <option value="">Sélectionner une catégorie</option>
-                    {% for category in categories %}
-                    <option value="{{ category.id }}" {% if article and article.category_id == category.id %}selected{% endif %}>
-                        {{ category.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="images">Images</label>
-                <input type="file" class="form-control-file" id="images" name="images" accept="image/*" multiple>
-                <small class="form-text text-muted">Vous pouvez sélectionner plusieurs images. Formats acceptés : PNG, JPG, JPEG, GIF</small>
-                
-                {% if article and article.image_path %}
-                <div class="current-images mt-3">
-                    <h5>Images actuelles :</h5>
-                    <div class="image-gallery" id="sortable-gallery">
-                        {% for image_path in article.image_path.split(',') if image_path.strip() %}
-                        <div class="image-item" data-path="{{ image_path }}">
-                            <img src="{{ url_for('static', filename=image_path) }}" alt="Image de l'article">
-                            <button type="button" class="btn btn-danger btn-sm remove-image" data-path="{{ image_path }}">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            <div class="image-handle">
-                                <i class="fas fa-grip-vertical"></i>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    <input type="hidden" name="existing_images" id="existing-images" value="{{ article.image_path }}">
-                </div>
-                {% endif %}
-            </div>
-            
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i> {% if article %}Mettre à jour{% else %}Créer{% endif %}
-                </button>
-                <a href="{{ url_for('manage_articles') }}" class="btn btn-secondary">
-                    <i class="fas fa-times"></i> Annuler
-                </a>
-            </div>
-        </form>
-    </div>
-</div>
-{% endblock %}
-
 {% block extra_css %}
 {{ super() }}
+<!-- Inclusion des styles Quill -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 <style>
+/* Layout principal */
 .admin-container {
     display: flex;
     gap: 2rem;
-    margin-top: 2rem;
+    margin: 2rem auto;
+    max-width: 1600px;
+    width: 95%;
 }
 
 .admin-sidebar {
     width: 250px;
+    flex-shrink: 0;
     background: #f8f9fa;
     padding: 1rem;
     border-radius: 8px;
+    height: fit-content;
 }
 
 .admin-menu {
@@ -128,24 +58,20 @@
 
 .admin-content {
     flex: 1;
+    min-width: 0;
 }
 
+/* Styles du formulaire */
 .article-form {
     background: white;
     padding: 2rem;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    max-width: 100%;
+    width: 100%;
 }
 
 .form-group {
-    margin-bottom: 1.5rem;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
+    margin-bottom: 2rem;
 }
 
 .form-control {
@@ -167,14 +93,28 @@
     margin-top: 2rem;
 }
 
-.tox-tinymce {
-    border-radius: 4px !important;
+/* Styles pour Quill */
+#editor {
+    height: 500px;
+    margin-bottom: 1rem;
 }
 
-.current-images {
-    margin-top: 1rem;
+.ql-editor {
+    min-height: 400px;
+    font-size: 16px;
 }
 
+.ql-toolbar.ql-snow {
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+}
+
+.ql-container.ql-snow {
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
+/* Styles pour la galerie d'images */
 .image-gallery {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -184,9 +124,9 @@
 
 .image-item {
     position: relative;
-    border-radius: 4px;
-    overflow: hidden;
-    cursor: move;
+    border: 1px solid #ddd;
+    padding: 0.5rem;
+    text-align: center;
 }
 
 .image-item img {
@@ -236,45 +176,255 @@
     color: #6c757d;
     margin-top: 0.25rem;
 }
+
+/* Ajustements responsifs */
+@media (max-width: 1200px) {
+    .admin-container {
+        flex-direction: column;
+    }
+    
+    .admin-sidebar {
+        width: 100%;
+    }
+    
+    .admin-menu {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .admin-menu li {
+        margin: 0;
+    }
+}
 </style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-sidebar">
+        <ul class="admin-menu">
+            <li><a href="{{ url_for('admin.admin_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
+            <li><a href="{{ url_for('article.manage_articles') }}" class="active"><i class="fas fa-list"></i> Gérer les articles</a></li>
+            <li><a href="{{ url_for('comment.manage_comments') }}"><i class="fas fa-comments"></i> Commentaires</a></li>
+            <li><a href="{{ url_for('admin.manage_newsletter') }}"><i class="fas fa-envelope"></i> Newsletter</a></li>
+        </ul>
+    </div>
+
+    <div class="admin-content">
+        <h1>{% if article %}Modifier l'article{% else %}Nouvel article{% endif %}</h1>
+        
+        <form method="POST" enctype="multipart/form-data" class="article-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label for="title">Titre</label>
+                <input type="text" class="form-control" id="title" name="title" value="{{ article.title if article else '' }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="content">Contenu</label>
+                <!-- Div pour Quill -->
+                <div id="editor"></div>
+                <!-- Textarea caché pour stocker le contenu -->
+                <textarea style="display: none;" id="content" name="content">{{ article.content if article else '' }}</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="category_id">Catégorie</label>
+                <select class="form-control" id="category_id" name="category_id" required>
+                    <option value="">Sélectionner une catégorie</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if article and article.category_id == category.id %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="image">Image de couverture</label>
+                <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                {% if article and article.image_path %}
+                <div class="mt-2">
+                    <img src="{{ url_for('static', filename=article.image_path) }}" alt="Image actuelle" style="max-width: 200px;">
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="documents">Documents (PDF, Word, Excel, etc.)</label>
+                <input type="file" class="form-control" id="documents" name="documents" multiple 
+                       accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                {% if article and article.documents %}
+                <div class="mt-3">
+                    <h5>Documents actuels :</h5>
+                    <ul class="list-group">
+                        {% for doc in article.documents %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="fas fa-file me-2"></i>
+                                {{ doc.original_filename }}
+                            </span>
+                            <div>
+                                <a href="{{ url_for('static', filename=doc.file_path) }}" 
+                                   class="btn btn-sm btn-primary me-2" target="_blank">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-danger" 
+                                        onclick="deleteDocument('{{ doc.id }}')"
+                                        title="Supprimer le document">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="images">Images</label>
+                <input type="file" class="form-control-file" id="images" name="images" accept="image/*" multiple>
+                <small class="form-text text-muted">Vous pouvez sélectionner plusieurs images. Formats acceptés : PNG, JPG, JPEG, GIF</small>
+                
+                {% if article and article.image_path %}
+                <div class="current-images mt-3">
+                    <h5>Images actuelles :</h5>
+                    <div class="image-gallery" id="sortable-gallery">
+                        {% for image_path in article.image_path.split(',') if image_path.strip() %}
+                        <div class="image-item" data-path="{{ image_path }}">
+                            <img src="{{ url_for('static', filename=image_path) }}" alt="Image de l'article">
+                            <button type="button" class="btn btn-danger btn-sm remove-image" 
+                                    data-path="{{ image_path }}"
+                                    title="Supprimer l'image">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <div class="image-handle">
+                                <i class="fas fa-grip-vertical"></i>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" name="existing_images" id="existing-images" value="{{ article.image_path }}">
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> {% if article %}Mettre à jour{% else %}Créer{% endif %}
+                </button>
+                <a href="{{ url_for('article.manage_articles') }}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Annuler
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if article %}
+<script>
+function deleteDocument(docId) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
+        fetch(`/admin/article/document/${docId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erreur lors de la suppression du document');
+            }
+        });
+    }
+}
+</script>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 {{ super() }}
+<script src="https://cdn.quilljs.com/1.3.6/quill.js" referrerpolicy="origin"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-<script src="https://cdn.tiny.cloud/1/vqiw054507d4x8ru2undrh2vxuscjkzrgnf6dt3mfvz1ub68/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Fonction pour mettre à jour le token CSRF dans le formulaire d'article
-    function updateArticleCsrfToken() {
-        fetch('/get-csrf-token', {
-            credentials: 'same-origin'
-        })
-        .then(response => response.json())
-        .then(data => {
-            const tokenInput = document.querySelector('form.article-form input[name="csrf_token"]');
-            if (tokenInput) {
-                tokenInput.value = data.csrf_token;
-                console.log('Token CSRF mis à jour dans le formulaire d\'article:', data.csrf_token);
+    // Configuration de Quill
+    var quill = new Quill('#editor', {
+        theme: 'snow',
+        modules: {
+            toolbar: [
+                [{ 'header': [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                ['blockquote', 'code-block'],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                [{ 'align': [] }],
+                ['link', 'image'],
+                ['clean']
+            ]
+        }
+    });
+
+    // Synchronisation avec le textarea caché
+    var form = document.querySelector('form');
+    var contentInput = document.querySelector('#content');
+
+    // Initialiser Quill avec le contenu existant
+    if (contentInput.value) {
+        quill.root.innerHTML = contentInput.value;
+    }
+
+    // Mettre à jour le textarea avant la soumission du formulaire
+    form.onsubmit = function() {
+        contentInput.value = quill.root.innerHTML;
+        return true;
+    };
+
+    // Gestion des images
+    var imageHandler = function() {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/*');
+        input.click();
+
+        input.onchange = function() {
+            const file = input.files[0];
+            if (file) {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('csrf_token', '{{ csrf_token() }}');
+
+                fetch('{{ url_for("upload_image") }}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.location) {
+                        const range = quill.getSelection(true);
+                        quill.insertEmbed(range.index, 'image', data.location);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors de l\'upload de l\'image:', error);
+                });
             }
-        })
-        .catch(error => {
-            console.error('Erreur lors de la récupération du token CSRF pour l\'article:', error);
-        });
-    }
+        };
+    };
 
-    // Mettre à jour le token CSRF au chargement de la page
-    updateArticleCsrfToken();
+    // Ajouter le gestionnaire d'images à la barre d'outils
+    var toolbar = quill.getModule('toolbar');
+    toolbar.addHandler('image', imageHandler);
 
-    // Si le formulaire d'article est dans un modal, on peut aussi écouter l'ouverture du modal
-    const articleModal = document.getElementById('articleModal');
-    if (articleModal) {
-        articleModal.addEventListener('show.bs.modal', function () {
-            updateArticleCsrfToken();
-        });
-    }
-
-    // Initialiser Sortable pour la galerie d'images
+    // Gestion de la galerie d'images
     const gallery = document.getElementById('sortable-gallery');
     if (gallery) {
         new Sortable(gallery, {
@@ -283,7 +433,6 @@ document.addEventListener('DOMContentLoaded', function() {
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
             onEnd: function() {
-                // Mettre à jour l'ordre des images dans le champ caché
                 const images = Array.from(gallery.getElementsByClassName('image-item'))
                     .map(item => item.dataset.path);
                 document.getElementById('existing-images').value = images.join(',');
@@ -291,51 +440,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Initialiser TinyMCE pour l'éditeur de contenu
-    tinymce.init({
-        selector: '#content',
-        plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
-        toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
-        height: 500,
-        menubar: true,
-        language: 'fr_FR',
-        images_upload_url: '{{ url_for("upload_image") }}',
-        automatic_uploads: true,
-        file_picker_types: 'image',
-        images_reuse_filename: true,
-        images_upload_handler: function (blobInfo, success, failure) {
-            const formData = new FormData();
-            formData.append('file', blobInfo.blob(), blobInfo.filename());
-            formData.append('csrf_token', '{{ csrf_token() }}');
-
-            fetch('{{ url_for("upload_image") }}', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token() }}'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.location) {
-                    success(data.location);
-                } else {
-                    failure('Erreur lors de l\'upload de l\'image');
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-                failure('Erreur lors de l\'upload de l\'image');
-            });
-        },
-        setup: function(editor) {
-            editor.on('change', function() {
-                editor.save();
-            });
-        }
-    });
-
-    // Gérer la suppression d'images
+    // Gestion de la suppression d'images
     document.querySelectorAll('.remove-image').forEach(button => {
         button.addEventListener('click', function() {
             if (confirm('Êtes-vous sûr de vouloir supprimer cette image ?')) {

@@ -21,6 +21,7 @@ class Article(Base):
     author = relationship("User", back_populates="articles")
     comments = relationship("Comment", back_populates="article", cascade="all, delete-orphan")
     page_views = relationship("PageView", back_populates="article", cascade="all, delete-orphan")
+    documents = relationship("ArticleDocument", back_populates="article", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Article {self.title}>" 

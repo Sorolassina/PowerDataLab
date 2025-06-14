@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Vérification Admin - PowerDataLab{% endblock %}
+{% block title %}Vérification Admin - Powerdataanalytics{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
@@ -21,7 +21,7 @@
                     
                     <p class="text-center mb-4">Veuillez entrer le code de vérification envoyé à votre email.</p>
                     
-                    <form method="POST" action="{{ url_for('verify_admin_code') }}">
+                    <form method="POST" action="{{ url_for('admin.verify_admin_code') }}">
                         {{ form.csrf_token }}
                         <div class="form-group mb-3">
                             {{ form.code.label(class="form-label") }}
@@ -34,7 +34,7 @@
                         </div>
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary">Valider</button>
-                            <a href="{{ url_for('login') }}" class="btn btn-link">Retour à la connexion</a>
+                            <a href="{{ url_for('main.login') }}" class="btn btn-link">Retour à la connexion</a>
                         </div>
                     </form>
                 </div>

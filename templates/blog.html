@@ -1,7 +1,5 @@
 {% extends "base.html" %}
 
-{% block title %}PowerDataLab - Blog{% endblock %}
-
 {% block content %}
 <div class="container">
     <div class="row">
@@ -11,11 +9,20 @@
                 <h3>Catégories</h3>
                 <ul class="categories-list">
                     {% for category in categories %}
-                    <li>
-                        <a href="{{ url_for('category', slug=category.slug) }}" class="category-link" style="color: {{ category.color_theme }}">
-                            {{ category.name }}
-                            <span class="article-count">{{ category.article_count }}</span>
-                        </a>
+                    <li style="position: relative; border-radius: 12px; border: 1px solid {{ category.color_theme }}; overflow: hidden; margin-bottom: 8px;">
+                        <!-- Fond avec opacité -->
+                        <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: {{ category.color_theme }}; opacity: 0.1; z-index: 0;"></div>
+                        <!-- Contenu -->
+                        <div style="position: relative; z-index: 1; width: 100%;">
+                            <a href="{{ url_for('category.category', slug=category.slug) }}" 
+                               class="category-link d-flex justify-content-between align-items-center" 
+                               style="color: {{ category.color_theme }}; padding: 10px;">
+                                {{ category.name }}
+                                <span class="article-count" style="background-color: {{ category.color_theme }}; opacity: 0.5; color: white; padding: 4px 8px; border-radius: 20px;">
+                                    {{ category.article_count }}
+                                </span>
+                            </a>
+                        </div>
                     </li>
                     {% endfor %}
                 </ul>
@@ -34,7 +41,7 @@
                     {% endif %}
                     <div class="article-content">
                         <h2 class="article-title">
-                            <a href="{{ url_for('article', slug=article.slug) }}" style="color: {{ article.color_theme }}">{{ article.title }}</a>
+                            <a href="{{ url_for('article.article', slug=article.slug) }}" style="color: {{ article.color_theme }}">{{ article.title }}</a>
                         </h2>
                         <div class="article-meta">
                             <span class="article-author">
@@ -45,7 +52,7 @@
                             </span>
                             <span class="article-category">
                                 <i class="fas fa-folder"></i>
-                                <a href="{{ url_for('category', slug=article.category_slug) }}" class="category-link category-badge" style="background-color: {{ article.color_theme }}">
+                                <a href="{{ url_for('category.category', slug=article.category_slug) }}" class="category-link category-badge" style="background-color: {{ article.color_theme }}">
                                     {{ article.category_name }}
                                 </a>
                             </span>
@@ -53,7 +60,7 @@
                         <div class="article-excerpt">
                             {{ article.excerpt }}
                         </div>
-                        <a href="{{ url_for('article', slug=article.slug) }}" class="read-more" style="color: {{ article.color_theme }}; border-color: {{ article.color_theme }}">Lire la suite</a>
+                        <a href="{{ url_for('article.article', slug=article.slug) }}" class="read-more" style="color: {{ article.color_theme }}; border-color: {{ article.color_theme }}">Lire la suite</a>
                     </div>
                 </article>
                 {% endfor %}
@@ -177,23 +184,13 @@
     margin: 0;
 }
 
-.categories-list li {
-    margin-bottom: 0.5rem;
-}
-
-.categories-list a {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem;
+.category-link {
     text-decoration: none;
-    border-radius: 4px;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
 }
 
-.categories-list a:hover {
-    background-color: #f8f9fa;
-    opacity: 0.8;
+.category-link:hover {
+    transform: translateX(5px);
 }
 
 .article-count {

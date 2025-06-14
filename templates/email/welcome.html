@@ -2,6 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -12,7 +13,7 @@
             padding: 20px;
         }
         .header {
-            background-color: #007bff;
+            background-color: #6200ea;
             color: white;
             padding: 20px;
             text-align: center;
@@ -26,11 +27,15 @@
         .button {
             display: inline-block;
             padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
+            background-color: #6200ea;
+            color: white !important;
             text-decoration: none;
             border-radius: 5px;
             margin: 20px 0;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #7c4dff;
         }
         .footer {
             text-align: center;
@@ -38,41 +43,96 @@
             font-size: 0.9em;
             color: #666;
         }
+        .quick-links {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .quick-links h3 {
+            color: #6200ea;
+            margin-top: 0;
+        }
+        .social-links {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .social-links a {
+            display: inline-block;
+            margin: 0 10px;
+            color: #6200ea;
+            text-decoration: none;
+        }
+        .tips {
+            background-color: #e8eaf6;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .tips h3 {
+            color: #6200ea;
+            margin-top: 0;
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>Bienvenue sur PowerDataLab !</h1>
+        <h1>Bienvenue sur PowerDataAnalytics !</h1>
     </div>
     
     <div class="content">
         <p>Bonjour {{ username }},</p>
         
-        <p>Nous sommes ravis de vous accueillir sur PowerDataLab ! Votre compte a été créé avec succès.</p>
+        <p>Nous sommes ravis de vous accueillir sur PowerDataAnalytics ! Votre compte a été créé avec succès.</p>
         
-        <p>PowerDataLab est votre plateforme de référence pour tout ce qui concerne la suite Microsoft Power Platform, incluant :</p>
-        <ul>
-            <li>Power BI pour l'analyse de données et la visualisation</li>
-            <li>Power Apps pour la création d'applications métier</li>
-            <li>Power Automate pour l'automatisation des processus</li>
-            <li>Power Virtual Agents pour la création de chatbots</li>
-            <li>SharePoint pour la gestion de contenu et la collaboration</li>
-        </ul>
-        
-        <p>Vous pouvez dès maintenant vous connecter à votre compte et commencer à explorer notre contenu :</p>
-        
-        <div style="text-align: center;">
-            <a href="{{ login_url }}" class="button">Se connecter</a>
+        <div class="quick-links">
+            <h3>🚀 Pour commencer</h3>
+            <ul>
+                <li><a href="{{ url_for('main.index', _external=True) }}">Découvrir nos derniers articles</a></li>
+                <li><a href="{{ url_for('project.projects', _external=True) }}">Explorer nos projets</a></li>
+                <li><a href="{{ url_for('main.about', _external=True) }}">En savoir plus sur nous</a></li>
+            </ul>
+        </div>
+
+        <div class="tips">
+            <h3>💡 Conseils pour bien démarrer</h3>
+            <ul>
+                <li>Inscrivez-vous à notre newsletter pour recevoir les dernières actualités et conseils</li>
+                <li>Explorez nos différentes catégories de contenu</li>
+                <li>Activez les notifications pour ne rien manquer</li>
+                <li>N'hésitez pas à commenter et interagir avec la communauté</li> 
+            </ul>
         </div>
         
-        <p>Si vous avez des questions ou besoin d'aide, n'hésitez pas à nous contacter.</p>
+        <p>PowerDataAnalytics est votre plateforme de référence pour tout ce qui concerne la suite Microsoft Power Platform :</p>
+        <ul>
+            <li>🔍 <strong>Power BI</strong> - Analyse de données et visualisation</li>
+            <li>📱 <strong>Power Apps</strong> - Création d'applications métier</li>
+            <li>⚡ <strong>Power Automate</strong> - Automatisation des processus</li>
+            <li>📂 <strong>SharePoint</strong> - Gestion de contenu et collaboration</li>
+            <li>🤖 <strong>Divers</strong> - Aborder tous les sujets concernant l'intelligence artificielle et l'analyse de données</li>
+            
+        </ul>
         
-        <p>Cordialement,<br>L'équipe PowerDataLab</p>
+        <div style="text-align: center;">
+            <a href="{{ login_url }}" class="button">Se connecter à mon compte</a>
+        </div>
+
+        <div class="social-links">
+            <h3>Suivez-moi</h3>
+            <a href="https://www.linkedin.com/in/sorolassina" target="_blank" rel="noopener noreferrer">LinkedIn</a> |
+            <a href="https://github.com/Sorolassina" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </div>
+        
+        <p>Si vous avez des questions ou besoin d'aide,je suis là pour vous accompagner.</p>
+        
+        <p>Cordialement,<br>Soro Lassina</p>
     </div>
     
     <div class="footer">
-        <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
-        <p>© {{ now.year }} PowerDataLab - Tous droits réservés</p>
+        <p>Cet email a été envoyé automatiquement le {{ now.strftime('%d/%m/%Y à %H:%M') }}.</p>
+        <p>© {{ now.year }} PowerDataAnalytics - Tous droits réservés</p>
+        <p><small>Vous recevez cet email car vous venez de créer un compte sur PowerDataAnalytics.</small></p>
     </div>
 </body>
 </html> 

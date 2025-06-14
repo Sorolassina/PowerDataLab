@@ -1,6 +1,125 @@
-# PowerDataLab Blog
+# PowerDataLab
 
-Blog professionnel développé avec Flask, présentant des articles sur Power BI, Power Apps, Power Automate, Power Virtual Agents et SharePoint.
+Une plateforme web moderne pour partager des ressources et des projets autour de la suite Microsoft Power Platform.
+
+## Fonctionnalités
+
+- Articles et tutoriels sur Power BI, Power Apps, Power Automate et SharePoint
+- Projets téléchargeables avec code source et documentation
+- Système de likes et de vues
+- Authentification des utilisateurs
+- Emails de bienvenue personnalisés
+- Interface moderne et responsive
+
+## Installation
+
+1. Clonez le dépôt :
+```bash
+git clone https://github.com/votre-username/powerdatalab.git
+cd powerdatalab
+```
+
+2. Créez un environnement virtuel et installez les dépendances :
+```bash
+python -m venv venv
+source venv/bin/activate  # ou `venv\Scripts\activate` sous Windows
+pip install -r requirements.txt
+```
+
+3. Créez un fichier `.env` avec les variables d'environnement suivantes :
+```
+# Configuration générale
+FLASK_APP=app
+FLASK_ENV=development
+SECRET_KEY=votre-clé-secrète-très-longue-et-aléatoire
+SITE_URL=http://localhost:5000
+
+# Configuration de la base de données
+DATABASE_URL=sqlite:///app.db
+
+# Configuration email (exemple avec Gmail)
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=true
+MAIL_USERNAME=votre-email@gmail.com
+MAIL_PASSWORD=votre-mot-de-passe-d-application
+MAIL_DEFAULT_SENDER=PowerDataLab <votre-email@gmail.com>
+
+# Configuration du logging
+LOG_TO_STDOUT=false
+LOG_LEVEL=INFO
+```
+
+Note : Pour Gmail, vous devez :
+1. Activer l'authentification à deux facteurs
+2. Générer un mot de passe d'application spécifique
+3. Utiliser ce mot de passe d'application comme MAIL_PASSWORD
+
+4. Initialisez la base de données :
+```bash
+flask db upgrade
+```
+
+5. Lancez l'application :
+```bash
+flask run
+```
+
+L'application sera accessible à l'adresse http://localhost:5000
+
+## Structure du projet
+
+```
+powerdatalab/
+├── app/                    # Application Flask
+│   ├── static/            # Fichiers statiques (CSS, JS, images)
+│   ├── templates/         # Templates Jinja2
+│   │   └── email/        # Templates d'emails
+│   ├── models/           # Modèles SQLAlchemy
+│   └── utils/            # Utilitaires (email, auth, etc.)
+├── migrations/            # Migrations Alembic
+├── tests/                # Tests unitaires et d'intégration
+├── config.py             # Configuration de l'application
+├── requirements.txt      # Dépendances Python
+└── README.md            # Ce fichier
+```
+
+## Développement
+
+Pour contribuer au projet :
+
+1. Créez une branche pour votre fonctionnalité :
+```bash
+git checkout -b feature/ma-fonctionnalite
+```
+
+2. Faites vos modifications et commitez :
+```bash
+git add .
+git commit -m "Description de vos modifications"
+```
+
+3. Poussez vos modifications :
+```bash
+git push origin feature/ma-fonctionnalite
+```
+
+4. Créez une Pull Request sur GitHub
+
+## Tests
+
+Pour lancer les tests :
+```bash
+pytest
+```
+
+## Déploiement
+
+Instructions pour le déploiement en production à venir...
+
+## Licence
+
+Ce projet est sous licence MIT. Voir le fichier LICENSE pour plus de détails.
 
 ## 🚀 Déploiement sur Render
 

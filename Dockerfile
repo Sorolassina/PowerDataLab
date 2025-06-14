@@ -1,22 +1,33 @@
-# Étape 1 : base Python
-FROM python:3.11-slim
+# Utiliser une image Python officielle
+FROM python:3.11-slim-bullseye
 
-# Étape 2 : définition du répertoire de travail
+# Définir le répertoire de travail
 WORKDIR /app
 
-# Étape 3 : copier les fichiers dans l'image
-COPY . /app
+# Installer les dépendances système nécessaires
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+    gcc \
+    libpq-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Étape 4 : installer les dépendances
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
+# Copier les fichiers de dépendances
+COPY requirements.txt .
 
-# Étape 5 : exposer le port
+# Installer les dépendances Python
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copier le reste du code
+COPY . .
+
+# Créer le dossier uploads s'il n'existe pas
+RUN mkdir -p static/uploads
+
+# Exposer le port
 EXPOSE 8050
 
-# Étape 6 : lancer l'app Flask avec le fichier .env
-#CMD ["sh", "-c", "python -m dotenv.cli && alembic upgrade head && python app.py"]
-#CMD ["sh", "-c", "alembic upgrade head && python app.py"]
-CMD ["sh", "-c", "alembic stamp head && python app.py"]
+# Commande pour démarrer l'application
+CMD ["gunicorn", "--bind", "0.0.0.0:8050", "app:app"]
 
  

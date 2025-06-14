@@ -43,5 +43,19 @@ class NewsletterHistory(Base):
     # Relations
     sender = relationship("User", back_populates="newsletter_history")
     
+    @property
+    def sent_at_formatted(self):
+        """Retourne la date d'envoi formatée"""
+        if self.sent_at:
+            return self.sent_at.strftime("%d/%m/%Y à %H:%M")
+        return "Non envoyé"
+    
+    @property
+    def sender_name(self):
+        """Retourne le nom de l'expéditeur"""
+        if self.sender:
+            return self.sender.username
+        return "Système"
+    
     def __repr__(self):
         return f"<NewsletterHistory {self.subject}>" 

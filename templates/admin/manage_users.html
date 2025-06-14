@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Gérer les utilisateurs - PowerDataLab{% endblock %}
+{% block title %}Gérer les utilisateurs - Powerdataanalytics{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Gestion des utilisateurs</h2>
-        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-primary">
             <i class="fas fa-arrow-left"></i> Retour au tableau de bord
         </a>
     </div>
@@ -52,22 +52,16 @@
                     <td>
                         <div class="btn-group">
                             {% if user.id != current_user.id %}
-                            <form action="{{ url_for('manage_users') }}/{{ user.id }}/toggle-block" method="POST" class="d-inline">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir {% if user.is_blocked %}débloquer{% else %}bloquer{% endif %} cet utilisateur ?')">
-                                    {% if user.is_blocked %}
-                                    Débloquer
-                                    {% else %}
-                                    Bloquer
-                                    {% endif %}
-                                </button>
-                            </form>
-                            <form action="{{ url_for('delete_user', user_id=user.id) }}" method="POST" class="d-inline">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')">
-                                    Supprimer
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-warning btn-sm" onclick="toggleUserBlock({{ user.id }}, '{% if user.is_blocked %}débloquer{% else %}bloquer{% endif %}')">
+                                {% if user.is_blocked %}
+                                Débloquer
+                                {% else %}
+                                Bloquer
+                                {% endif %}
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="deleteUser({{ user.id }})">
+                                Supprimer
+                            </button>
                             {% endif %}
                         </div>
                     </td>
@@ -83,19 +77,19 @@
         <ul class="pagination justify-content-center">
             {% if users.has_prev %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('manage_users', page=users.prev_num) }}">Précédent</a>
+                <a class="page-link" href="{{ url_for('user.manage_users', page=users.prev_num) }}">Précédent</a>
             </li>
             {% endif %}
             
             {% for page in range(1, users.pages + 1) %}
             <li class="page-item {% if page == users.page %}active{% endif %}">
-                <a class="page-link" href="{{ url_for('manage_users', page=page) }}">{{ page }}</a>
+                <a class="page-link" href="{{ url_for('user.manage_users', page=page) }}">{{ page }}</a>
             </li>
             {% endfor %}
             
             {% if users.has_next %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('manage_users', page=users.next_num) }}">Suivant</a>
+                <a class="page-link" href="{{ url_for('user.manage_users', page=users.next_num) }}">Suivant</a>
             </li>
             {% endif %}
         </ul>
@@ -227,58 +221,80 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Fonction pour mettre à jour le token CSRF
-    async function updateCsrfToken() {
-        try {
-            const response = await fetch('/get-csrf-token');
-            const data = await response.json();
-            return data.csrf_token;
-        } catch (error) {
-            console.error('Erreur lors de la récupération du token CSRF:', error);
-            throw error;
-        }
+async function getCsrfToken() {
+    try {
+        const response = await fetch('/get-csrf-token');
+        const data = await response.json();
+        return data.csrf_token;
+    } catch (error) {
+        console.error('Erreur lors de la récupération du token CSRF:', error);
+        return null;
+    }
+}
+
+async function deleteUser(userId) {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
+        return;
     }
 
-    // Gestionnaire pour tous les formulaires
-    document.querySelectorAll('form').forEach(form => {
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            if (!confirm('Êtes-vous sûr de vouloir effectuer cette action ?')) {
-                return;
-            }
-            
-            try {
-                // Récupérer le token CSRF actuel
-                const csrfToken = await updateCsrfToken();
-                
-                // Préparer les données du formulaire
-                const formData = new FormData(form);
-                formData.set('csrf_token', csrfToken);
-                
-                // Envoyer la requête avec fetch
-                const response = await fetch(form.action, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-CSRFToken': csrfToken
-                    },
-                    credentials: 'same-origin'
-                });
+    const csrfToken = await getCsrfToken();
+    if (!csrfToken) {
+        alert('Erreur de sécurité : impossible de récupérer le token CSRF');
+        return;
+    }
 
-                if (response.ok) {
-                    // Recharger la page après une action réussie
-                    window.location.reload();
-                } else {
-                    throw new Error('Erreur lors de la soumission du formulaire');
-                }
-            } catch (error) {
-                console.error('Erreur:', error);
-                alert('Une erreur est survenue. Veuillez réessayer.');
+    try {
+        const response = await fetch(`/admin/users/${userId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
             }
         });
-    });
-});
+
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            const data = await response.json();
+            alert(data.message || 'Erreur lors de la suppression de l\'utilisateur');
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('Erreur lors de la suppression de l\'utilisateur');
+    }
+
+}
+
+async function toggleUserBlock(userId, action) {
+    if (!confirm(`Êtes-vous sûr de vouloir ${action} cet utilisateur ?`)) {
+        return;
+    }
+
+    const csrfToken = await getCsrfToken();
+    if (!csrfToken) {
+        alert('Erreur de sécurité : impossible de récupérer le token CSRF');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/admin/users/${userId}/toggle-block`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        });
+
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            const data = await response.json();
+            alert(data.message || `Erreur lors de l'action ${action}`);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert(`Erreur lors de l'action ${action}`);
+    }
+}
 </script>
 {% endblock %} 

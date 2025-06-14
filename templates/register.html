@@ -11,7 +11,7 @@
                     <h2 class="text-center">Inscription</h2>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('register') }}" class="auth-form">
+                    <form method="POST" action="{{ url_for('main.register') }}" class="auth-form">
                         {{ form.hidden_tag() }}
                         
                         <div class="form-group mb-3">
@@ -60,7 +60,7 @@
                     </form>
                 </div>
                 <div class="card-footer text-center">
-                    <p>Déjà inscrit ? <a href="{{ url_for('login') }}">Se connecter</a></p>
+                    <p>Déjà inscrit ? <a href="{{ url_for('main.login') }}">Se connecter</a></p>
                 </div>
             </div>
         </div>

@@ -6,7 +6,7 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Analytics</h1>
-        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+        <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Retour au tableau de bord
         </a>
     </div>
@@ -121,7 +121,7 @@
                         {% for article in top_articles %}
                         <tr>
                             <td>
-                                <a href="{{ url_for('article', slug=article.slug) }}">
+                                <a href="{{ url_for('article.article', slug=article.slug) }}">
                                     {{ article.title }}
                                 </a>
                             </td>

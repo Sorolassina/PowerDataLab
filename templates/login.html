@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Connexion - PowerDataLab{% endblock %}
+{% block title %}Connexion - Powerdataanalytics{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
@@ -41,8 +41,8 @@
                         </div>
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary" id="submitBtn">Se connecter</button>
-                            <a href="{{ url_for('reset_password_request') }}" class="btn btn-link">Mot de passe oublié ?</a>
-                            <a href="{{ url_for('register') }}" class="btn btn-link">Créer un compte</a>
+                            <a href="{{ url_for('main.reset_password_request') }}" class="btn btn-link">Mot de passe oublié ?</a>
+                            <a href="{{ url_for('main.register') }}" class="btn btn-link">Créer un compte</a>
                         </div>
                     </form>
                 </div>
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
             submitBtn.textContent = 'Vérifier l\'email';
             
             // Envoyer une requête AJAX pour générer et envoyer le code
-            fetch('{{ url_for("login") }}', {
+            fetch('{{ url_for("main.login") }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(data => {
                 if (data.success) {
-                    window.location.href = '{{ url_for("admin_verify") }}';
+                    window.location.href = '{{ url_for("admin.admin_verify") }}';
                 } else {
                     alert(data.message || 'Erreur lors de l\'envoi du code de vérification');
                 }

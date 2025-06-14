@@ -44,11 +44,13 @@ instance/
 # Uploads
 static/uploads/*
 !static/uploads/.gitkeep
+static/documents/*
+!static/documents/.gitkeep
 
 # Logs
 *.log
-logs/
-log/
+logs/*
+!logs/.gitkeep
 
 # Coverage reports
 htmlcov/
@@ -68,4 +70,28 @@ coverage.xml
 # Local development settings
 local_settings.py
 db.sqlite3
-db.sqlite3-journal 
+db.sqlite3-journal
+
+# Uploads de développement
+uploads/*
+!uploads/.gitkeep
+
+# Documents de développement
+documents/*
+!documents/.gitkeep
+
+# Base de données SQLite
+*.db
+*.sqlite3
+
+# Fichiers de configuration locaux
+.flaskenv
+
+# Fichiers de test et coverage
+.pytest_cache/
+
+# Documentation générée
+docs/_build/
+
+# Fichiers système
+Thumbs.db 
