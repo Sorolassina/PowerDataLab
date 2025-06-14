@@ -275,6 +275,7 @@ def edit_article(article_id):
     article = g.db.query(Article).filter_by(id=article_id).first()
     
     if request.method == 'POST':
+        print(f"[DEBUG] Début de l'édition de l'article {article_id}")
         article.title = request.form['title']
         article.content = request.form['content']
         article.category_id = request.form['category_id']
@@ -282,23 +283,35 @@ def edit_article(article_id):
         
         # Gestion des images existantes et nouvelles
         existing_images = request.form.getlist('existing_images')
+        print(f"[DEBUG] Images existantes : {existing_images}")
         image_paths = [img.replace('\\', '/') for img in existing_images if img]
         
         if 'images' in request.files:
             files = request.files.getlist('images')
+            print(f"[DEBUG] Nombre de nouvelles images : {len(files)}")
             for file in files:
                 if file and file.filename:
+                    print(f"[DEBUG] Traitement de l'image : {file.filename}")
                     if allowed_file(file.filename):
                         filename = secure_filename(file.filename)
                         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
                         filename = f"{timestamp}_{filename}"
                         file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-                        file.save(file_path)
-                        rel_path = os.path.join('uploads', filename).replace('\\', '/')
-                        image_paths.append(rel_path)
+                        print(f"[DEBUG] Chemin de sauvegarde : {file_path}")
+                        try:
+                            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                            file.save(file_path)
+                            print(f"[DEBUG] Fichier sauvegardé avec succès")
+                            rel_path = os.path.join('uploads', filename).replace('\\', '/')
+                            image_paths.append(rel_path)
+                        except Exception as e:
+                            print(f"[DEBUG] Erreur lors de la sauvegarde : {str(e)}")
+                    else:
+                        print(f"[DEBUG] Type de fichier non autorisé : {file.filename}")
         
         # Nettoyer la liste (supprimer les vides)
         image_paths = [p for p in image_paths if p]
+        print(f"[DEBUG] Chemins d'images finaux : {image_paths}")
         article.image_path = ','.join(image_paths) if image_paths else None
         
         # Gérer l'upload des documents

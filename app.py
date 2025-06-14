@@ -32,7 +32,7 @@ app = Flask(__name__)
 
 app.config.update(
     SECRET_KEY=os.environ.get('SECRET_KEY', 'your-secret-key-here'),
-    UPLOAD_FOLDER=os.path.join(app.static_folder, 'uploads'),
+    UPLOAD_FOLDER='/app/static/uploads',  # Chemin absolu pour Render
     MAX_CONTENT_LENGTH=16 * 1024 * 1024,  # 16MB max file size
     WTF_CSRF_ENABLED=True,
     MAIL_SERVER=os.environ.get('MAIL_SERVER', 'smtp.gmail.com'),
@@ -118,8 +118,9 @@ login_manager.init_app(app)
 login_manager.login_view = 'main.login'
 
 # Création des dossiers nécessaires
+print(f"[DEBUG] Création du dossier d'upload : {app.config['UPLOAD_FOLDER']}")
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs(os.path.join(app.static_folder, 'documents'), exist_ok=True)
+print(f"[DEBUG] Dossier d'upload créé avec succès")
 
 def is_admin():
     return session.get('is_admin', False)
