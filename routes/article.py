@@ -276,6 +276,30 @@ def edit_article(article_id):
     
     if request.method == 'POST':
         print(f"[DEBUG] Début de l'édition de l'article {article_id}")
+        print(f"[DEBUG] UPLOAD_FOLDER configuré : {current_app.config['UPLOAD_FOLDER']}")
+        
+        # Vérifier si le dossier existe et ses permissions
+        upload_folder = current_app.config['UPLOAD_FOLDER']
+        print(f"[DEBUG] Vérification du dossier upload : {upload_folder}")
+        if os.path.exists(upload_folder):
+            print(f"[DEBUG] Le dossier existe")
+            # Vérifier les permissions
+            try:
+                test_file = os.path.join(upload_folder, 'test_permissions.txt')
+                with open(test_file, 'w') as f:
+                    f.write('test')
+                os.remove(test_file)
+                print(f"[DEBUG] Le dossier a les bonnes permissions d'écriture")
+            except Exception as e:
+                print(f"[DEBUG] Erreur de permissions sur le dossier : {str(e)}")
+        else:
+            print(f"[DEBUG] Le dossier n'existe pas, tentative de création")
+            try:
+                os.makedirs(upload_folder, exist_ok=True)
+                print(f"[DEBUG] Dossier créé avec succès")
+            except Exception as e:
+                print(f"[DEBUG] Erreur lors de la création du dossier : {str(e)}")
+
         article.title = request.form['title']
         article.content = request.form['content']
         article.category_id = request.form['category_id']
@@ -293,19 +317,32 @@ def edit_article(article_id):
                 if file and file.filename:
                     print(f"[DEBUG] Traitement de l'image : {file.filename}")
                     if allowed_file(file.filename):
-                        filename = secure_filename(file.filename)
-                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                        filename = f"{timestamp}_{filename}"
-                        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-                        print(f"[DEBUG] Chemin de sauvegarde : {file_path}")
                         try:
+                            filename = secure_filename(file.filename)
+                            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                            filename = f"{timestamp}_{filename}"
+                            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+                            print(f"[DEBUG] Tentative de sauvegarde vers : {file_path}")
+                            
+                            # Créer le dossier parent si nécessaire
                             os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                            
+                            # Sauvegarder le fichier
                             file.save(file_path)
-                            print(f"[DEBUG] Fichier sauvegardé avec succès")
-                            rel_path = os.path.join('uploads', filename).replace('\\', '/')
-                            image_paths.append(rel_path)
+                            print(f"[DEBUG] Fichier sauvegardé avec succès à {file_path}")
+                            
+                            # Vérifier que le fichier existe après la sauvegarde
+                            if os.path.exists(file_path):
+                                print(f"[DEBUG] Vérification : le fichier existe bien sur le disque")
+                                rel_path = os.path.join('uploads', filename).replace('\\', '/')
+                                image_paths.append(rel_path)
+                                print(f"[DEBUG] Chemin relatif ajouté : {rel_path}")
+                            else:
+                                print(f"[DEBUG] ERREUR : Le fichier n'existe pas après la sauvegarde")
+                            
                         except Exception as e:
                             print(f"[DEBUG] Erreur lors de la sauvegarde : {str(e)}")
+                            print(f"[DEBUG] Type d'erreur : {type(e)}")
                     else:
                         print(f"[DEBUG] Type de fichier non autorisé : {file.filename}")
         
