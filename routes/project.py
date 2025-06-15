@@ -60,7 +60,8 @@ def new_project():
                 demo_url=form.demo_url.data,
                 github_url=form.github_url.data,
                 technologies=form.technologies.data,
-                is_featured=form.is_featured.data
+                is_featured=form.is_featured.data,
+                status=form.status.data
             )
             g.db.add(project)
             g.db.flush()  # Pour obtenir l'ID du projet

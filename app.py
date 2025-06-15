@@ -30,9 +30,15 @@ print(f"MAIL_DEFAULT_SENDER: {os.environ.get('MAIL_DEFAULT_SENDER')}")
 
 app = Flask(__name__)
 
+# Définir le dossier d'upload en fonction de l'environnement
+if os.environ.get('FLASK_ENV') == 'production':
+    UPLOAD_FOLDER = '/app/static/uploads'  # Chemin absolu pour Render
+else:
+    UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
+
 app.config.update(
     SECRET_KEY=os.environ.get('SECRET_KEY', 'your-secret-key-here'),
-    UPLOAD_FOLDER='/app/static/uploads',  # Chemin absolu pour Render
+    UPLOAD_FOLDER=UPLOAD_FOLDER,
     MAX_CONTENT_LENGTH=16 * 1024 * 1024,  # 16MB max file size
     WTF_CSRF_ENABLED=True,
     MAIL_SERVER=os.environ.get('MAIL_SERVER', 'smtp.gmail.com'),

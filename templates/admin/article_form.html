@@ -242,16 +242,6 @@
             </div>
             
             <div class="form-group">
-                <label for="image">Image de couverture</label>
-                <input type="file" class="form-control" id="image" name="image" accept="image/*">
-                {% if article and article.image_path %}
-                <div class="mt-2">
-                    <img src="{{ url_for('static', filename=article.image_path) }}" alt="Image actuelle" style="max-width: 200px;">
-                </div>
-                {% endif %}
-            </div>
-
-            <div class="form-group">
                 <label for="documents">Documents (PDF, Word, Excel, etc.)</label>
                 <input type="file" class="form-control" id="documents" name="documents" multiple 
                        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
@@ -285,7 +275,7 @@
             
             <div class="form-group">
                 <label for="images">Images</label>
-                <input type="file" class="form-control-file" id="images" name="images" accept="image/*" multiple>
+                <input type="file" class="form-control" id="images" name="images" accept="image/*" multiple>
                 <small class="form-text text-muted">Vous pouvez sélectionner plusieurs images. Formats acceptés : PNG, JPG, JPEG, GIF</small>
                 
                 {% if article and article.image_path %}

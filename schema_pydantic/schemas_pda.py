@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField
-from wtforms.validators import DataRequired, Email, EqualTo, Length
+from wtforms.validators import DataRequired, Email, EqualTo, Length, URL, Optional
 from wtforms import TextAreaField, SelectField, FileField
 from flask_wtf.file import FileField, FileAllowed
 from wtforms import PasswordField, BooleanField
@@ -61,9 +61,9 @@ class ProjectForm(FlaskForm):
     ])
     category_color = StringField('Couleur de la catégorie')
     image = FileField('Image', validators=[FileAllowed(['jpg', 'png', 'jpeg'], 'Images uniquement!')])
-    demo_url = StringField('Lien Démo', validators=[URL()])
-    github_url = StringField('Lien GitHub', validators=[URL()])
-    documents = FileField('Documents', validators=[
+    demo_url = StringField('Lien Démo', validators=[Optional(), URL(message="L'URL n'est pas valide")])
+    github_url = StringField('Lien GitHub', validators=[Optional(), URL(message="L'URL n'est pas valide")])
+    documents = FileField('Documents', validators=[Optional(),
         FileAllowed(['pdf', 'doc', 'docx', 'txt', 'md', 'ppt', 'pptx', 'xls', 'xlsx'], 
         'Documents uniquement (PDF, Word, TXT, Markdown, PowerPoint, Excel)!')
     ], render_kw={"multiple": True})

@@ -2,6 +2,31 @@
 
 {% block title %}{{ "Modifier" if project else "Nouveau" }} Projet - Admin{% endblock %}
 
+{% block extra_css %}
+{{ super() }}
+<!-- Meta tag CSRF -->
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<!-- Inclusion des styles Quill -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<style>
+    #editor {
+        height: 300px;
+        margin-bottom: 1rem;
+    }
+    .ql-editor {
+        min-height: 250px;
+        font-size: 16px;
+    }
+    .project-image {
+        width: 100%;
+        height: 300px;
+        object-fit: cover;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="row">
@@ -12,7 +37,7 @@
                         {{ "Modifier" if project else "Nouveau" }} Projet
                     </h2>
 
-                    <form method="POST" enctype="multipart/form-data">
+                    <form method="POST" enctype="multipart/form-data" id="projectForm">
                         {{ form.csrf_token }}
                         
                         <!-- Titre -->
@@ -28,10 +53,11 @@
                             {% endif %}
                         </div>
 
-                        <!-- Description -->
+                        <!-- Description avec Quill -->
                         <div class="mb-3">
                             {{ form.description.label(class="form-label") }}
-                            {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), rows="4") }}
+                            <div id="editor">{{ project.description if project else '' }}</div>
+                            {{ form.description(style="display: none; position: absolute; left: -9999px;", id="description", required=false) }}
                             {% if form.description.errors %}
                                 <div class="invalid-feedback">
                                     {% for error in form.description.errors %}
@@ -71,7 +97,7 @@
                         <!-- URLs -->
                         <div class="mb-3">
                             {{ form.demo_url.label(class="form-label") }}
-                            {{ form.demo_url(class="form-control" + (" is-invalid" if form.demo_url.errors else "")) }}
+                            {{ form.demo_url(class="form-control" + (" is-invalid" if form.demo_url.errors else ""), placeholder="https://...") }}
                             {% if form.demo_url.errors %}
                                 <div class="invalid-feedback">
                                     {% for error in form.demo_url.errors %}
@@ -79,11 +105,12 @@
                                     {% endfor %}
                                 </div>
                             {% endif %}
+                            <small class="text-muted">Optionnel - URL de démonstration du projet</small>
                         </div>
 
                         <div class="mb-3">
                             {{ form.github_url.label(class="form-label") }}
-                            {{ form.github_url(class="form-control" + (" is-invalid" if form.github_url.errors else "")) }}
+                            {{ form.github_url(class="form-control" + (" is-invalid" if form.github_url.errors else ""), placeholder="https://github.com/...") }}
                             {% if form.github_url.errors %}
                                 <div class="invalid-feedback">
                                     {% for error in form.github_url.errors %}
@@ -91,6 +118,7 @@
                                     {% endfor %}
                                 </div>
                             {% endif %}
+                            <small class="text-muted">Optionnel - URL du dépôt GitHub</small>
                         </div>
 
                         <!-- Image -->
@@ -108,8 +136,7 @@
                                 <div class="mt-2">
                                     <img src="{{ url_for('static', filename=project.image_path) }}" 
                                          alt="Image actuelle" 
-                                         class="img-thumbnail" 
-                                         style="max-height: 200px;">
+                                         class="project-image">
                                 </div>
                             {% endif %}
                         </div>
@@ -191,7 +218,7 @@
                             <a href="{{ url_for('project.projects') }}" class="btn btn-outline-secondary">
                                 <i class="fas fa-arrow-left me-2"></i>Retour
                             </a>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary" id="submitButton">
                                 <i class="fas fa-save me-2"></i>{{ "Mettre à jour" if project else "Créer" }}
                             </button>
                         </div>
@@ -203,78 +230,267 @@
 </div>
 {% endblock %}
 
-{% block extra_css %}
-<style>
-.card {
-    border: none;
-}
-
-.form-control:focus,
-.form-select:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 0.2rem rgba(var(--primary-rgb), 0.25);
-}
-
-.form-check-input:checked {
-    background-color: var(--primary);
-    border-color: var(--primary);
-}
-</style>
-{% endblock %}
-
 {% block extra_js %}
+{{ super() }}
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Prévisualisation de l'image
-    const imageInput = document.querySelector('input[type="file"]');
-    const previewContainer = document.createElement('div');
-    previewContainer.className = 'mt-2';
-    imageInput.parentNode.appendChild(previewContainer);
+    document.addEventListener('DOMContentLoaded', function() {
+        // Configuration de Quill avec MutationObserver au lieu de DOMNodeInserted
+        var quill = new Quill('#editor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    [{ 'header': [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline', 'strike'],
+                    ['blockquote', 'code-block'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'align': [] }],
+                    ['link'],
+                    ['clean']
+                ]
+            }
+        });
 
-    imageInput.addEventListener('change', function() {
-        previewContainer.innerHTML = '';
-        if (this.files && this.files[0]) {
-            const img = document.createElement('img');
-            img.className = 'img-thumbnail';
-            img.style.maxHeight = '200px';
-            img.src = URL.createObjectURL(this.files[0]);
-            previewContainer.appendChild(img);
+        // Synchronisation avec le textarea caché
+        var form = document.getElementById('projectForm');
+        var descriptionInput = document.getElementById('description');
+        var submitButton = document.getElementById('submitButton');
+
+        // Initialiser Quill avec le contenu existant
+        if (descriptionInput.value) {
+            quill.root.innerHTML = descriptionInput.value;
         }
-    });
 
-    // Suppression de document
-    window.deleteDocument = function(documentId) {
-        if (confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
-            fetch(`/admin/projects/documents/${documentId}/delete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        // Observer les changements dans l'éditeur Quill avec MutationObserver
+        const observer = new MutationObserver(function(mutations) {
+            if (document.querySelector('#editor').style.border === '1px solid #dc3545') {
+                validateForm();
+            }
+        });
+
+        observer.observe(quill.root, {
+            childList: true,
+            characterData: true,
+            subtree: true
+        });
+
+        // Fonction pour afficher une erreur sous un champ
+        function showError(element, message) {
+            // Supprimer l'ancien message d'erreur s'il existe
+            const existingFeedback = element.parentNode.querySelector('.invalid-feedback');
+            if (existingFeedback) {
+                existingFeedback.remove();
+            }
+
+            // Ajouter la classe d'erreur
+            element.classList.add('is-invalid');
+            
+            // Créer et ajouter le nouveau message d'erreur
+            const feedback = document.createElement('div');
+            feedback.className = 'invalid-feedback';
+            feedback.style.display = 'block'; // Forcer l'affichage
+            feedback.textContent = message;
+            element.parentNode.appendChild(feedback);
+        }
+
+        // Fonction pour supprimer l'erreur d'un champ
+        function removeError(element) {
+            element.classList.remove('is-invalid');
+            const feedback = element.parentNode.querySelector('.invalid-feedback');
+            if (feedback) {
+                feedback.remove();
+            }
+        }
+
+        // Fonction de validation du formulaire
+        function validateForm() {
+            let isValid = true;
+            const errors = [];
+
+            // Valider le titre
+            const titleInput = form.querySelector('input[name="title"]');
+            if (!titleInput.value.trim()) {
+                showError(titleInput, 'Le titre est obligatoire');
+                isValid = false;
+                errors.push('Le titre est obligatoire');
+            } else {
+                removeError(titleInput);
+            }
+
+            // Valider la description (Quill)
+            const quillContent = quill.root.innerHTML.trim();
+            if (quillContent === '<p><br></p>' || quillContent === '') {
+                const editorElement = document.querySelector('#editor');
+                editorElement.style.border = '1px solid #dc3545';
+                showError(editorElement, 'La description est obligatoire');
+                isValid = false;
+                errors.push('La description est obligatoire');
+            } else {
+                const editorElement = document.querySelector('#editor');
+                editorElement.style.border = '1px solid #ced4da';
+                removeError(editorElement);
+            }
+
+            // Valider la catégorie
+            const categorySelect = form.querySelector('select[name="category"]');
+            if (!categorySelect.value) {
+                showError(categorySelect, 'La catégorie est obligatoire');
+                isValid = false;
+                errors.push('La catégorie est obligatoire');
+            } else {
+                removeError(categorySelect);
+            }
+
+            // Valider le statut
+            const statusSelect = form.querySelector('select[name="status"]');
+            if (!statusSelect.value) {
+                showError(statusSelect, 'Le statut est obligatoire');
+                isValid = false;
+                errors.push('Le statut est obligatoire');
+            } else {
+                removeError(statusSelect);
+            }
+
+            // Valider les URLs (si remplies)
+            const demoUrlInput = form.querySelector('input[name="demo_url"]');
+            const githubUrlInput = form.querySelector('input[name="github_url"]');
+
+            if (demoUrlInput.value && !isValidUrl(demoUrlInput.value)) {
+                showError(demoUrlInput, "L'URL de démo n'est pas valide");
+                isValid = false;
+                errors.push("L'URL de démo n'est pas valide");
+            } else if (demoUrlInput.value) {
+                removeError(demoUrlInput);
+            }
+
+            if (githubUrlInput.value && !isValidUrl(githubUrlInput.value)) {
+                showError(githubUrlInput, "L'URL GitHub n'est pas valide");
+                isValid = false;
+                errors.push("L'URL GitHub n'est pas valide");
+            } else if (githubUrlInput.value) {
+                removeError(githubUrlInput);
+            }
+
+            // Si des erreurs sont présentes, les afficher en haut du formulaire
+            const errorContainer = document.getElementById('formErrorContainer');
+            if (!isValid && errors.length > 0) {
+                if (!errorContainer) {
+                    const container = document.createElement('div');
+                    container.id = 'formErrorContainer';
+                    container.className = 'alert alert-danger mb-4';
+                    container.innerHTML = '<h5>Veuillez corriger les erreurs suivantes :</h5><ul class="mb-0"></ul>';
+                    form.insertBefore(container, form.firstChild);
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Supprimer l'élément de la liste
-                    const documentElement = document.querySelector(`[data-document-id="${documentId}"]`);
-                    if (documentElement) {
-                        documentElement.remove();
-                    }
-                    // Recharger la page si plus de documents
-                    const documentsList = document.querySelector('.list-group');
-                    if (documentsList && documentsList.children.length === 0) {
-                        location.reload();
-                    }
-                } else {
-                    alert('Erreur lors de la suppression du document');
+                const errorList = document.querySelector('#formErrorContainer ul');
+                errorList.innerHTML = errors.map(error => `<li>${error}</li>`).join('');
+            } else if (errorContainer) {
+                errorContainer.remove();
+            }
+
+            return isValid;
+        }
+
+        // Fonction pour valider les URLs
+        function isValidUrl(url) {
+            try {
+                new URL(url);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // Validation en temps réel pour les champs
+        form.querySelectorAll('input, select').forEach(element => {
+            element.addEventListener('input', function() {
+                if (this.classList.contains('is-invalid')) {
+                    validateForm();
                 }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-                alert('Erreur lors de la suppression du document');
             });
-        }
-    };
-});
+        });
+
+        // Validation de l'éditeur Quill en temps réel
+        quill.on('text-change', function() {
+            if (document.querySelector('#editor').style.border === '1px solid #dc3545') {
+                validateForm();
+            }
+        });
+
+        // Mettre à jour le textarea avant la soumission du formulaire
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Synchroniser le contenu de Quill
+            descriptionInput.value = quill.root.innerHTML;
+
+            // Valider le formulaire
+            if (!validateForm()) {
+                // Scroll vers la première erreur
+                const firstError = form.querySelector('.is-invalid');
+                if (firstError) {
+                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return false;
+            }
+
+            // Désactiver le bouton pour éviter les soumissions multiples
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Traitement...';
+
+            // Soumettre le formulaire
+            form.submit();
+        });
+
+        // Prévisualisation de l'image
+        const imageInput = document.querySelector('input[type="file"]');
+        const previewContainer = document.createElement('div');
+        previewContainer.className = 'mt-2';
+        imageInput.parentNode.appendChild(previewContainer);
+
+        imageInput.addEventListener('change', function() {
+            previewContainer.innerHTML = '';
+            if (this.files && this.files[0]) {
+                const img = document.createElement('img');
+                img.className = 'img-thumbnail';
+                img.style.maxHeight = '200px';
+                img.src = URL.createObjectURL(this.files[0]);
+                previewContainer.appendChild(img);
+            }
+        });
+
+        // Suppression de document
+        window.deleteDocument = function(documentId) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
+                fetch(`/admin/projects/documents/${documentId}/delete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Supprimer l'élément de la liste
+                        const documentElement = document.querySelector(`[data-document-id="${documentId}"]`);
+                        if (documentElement) {
+                            documentElement.remove();
+                        }
+                        // Recharger la page si plus de documents
+                        const documentsList = document.querySelector('.list-group');
+                        if (documentsList && documentsList.children.length === 0) {
+                            location.reload();
+                        }
+                    } else {
+                        alert('Erreur lors de la suppression du document');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    alert('Erreur lors de la suppression du document');
+                });
+            }
+        };
+    });
 </script>
 {% endblock %}

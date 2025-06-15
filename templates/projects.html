@@ -70,7 +70,7 @@
 
                     <!-- Titre et description -->
                     <h5 class="card-title">{{ project.title }}</h5>
-                    <p class="card-text">{{ project.description }}</p>
+                    <div class="card-text quill-content">{{ project.description | safe }}</div>
 
                     <!-- Technologies utilisées -->
                     <div class="mb-3">
@@ -172,9 +172,94 @@
     transform: translateY(-5px);
 }
 
+/* Styles pour le contenu Quill */
+.quill-content {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #4a5568;
+    max-height: 150px;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.quill-content::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: linear-gradient(transparent, white);
+}
+
+.quill-content p {
+    margin-bottom: 0.5rem;
+}
+
+.quill-content ul, .quill-content ol {
+    padding-left: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.quill-content blockquote {
+    border-left: 3px solid #e2e8f0;
+    padding-left: 1rem;
+    margin-left: 0;
+    color: #718096;
+}
+
+.quill-content a {
+    color: #3182ce;
+    text-decoration: none;
+}
+
+.quill-content a:hover {
+    text-decoration: underline;
+}
+
+.quill-content img {
+    max-width: 100%;
+    height: auto;
+    margin: 0.5rem 0;
+}
+
+.quill-content code {
+    background-color: #f7fafc;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+    color: #2d3748;
+}
+
 .project-image {
-    height: 200px;
-    object-fit: cover;
+    width: 100%;
+    height: 250px;
+    object-fit: contain;
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.card {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: none;
+    height: 100%; /* Pour assurer une hauteur uniforme */
+    display: flex;
+    flex-direction: column;
+}
+
+.card-body {
+    flex: 1; /* Pour que le contenu prenne l'espace restant */
+    display: flex;
+    flex-direction: column;
+}
+
+.project-links {
+    margin-top: auto; /* Pour pousser les liens vers le bas */
 }
 
 .project-links .btn {
@@ -221,7 +306,7 @@
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .project-image {
-        height: 150px;
+        height: 220px;
     }
     
     .btn-group {
@@ -233,6 +318,13 @@
     .btn-group .btn {
         flex: 1;
         min-width: calc(33.333% - 5px);
+    }
+}
+
+/* Ajustements pour les petits écrans */
+@media (max-width: 576px) {
+    .project-image {
+        height: 200px;
     }
 }
 </style>
