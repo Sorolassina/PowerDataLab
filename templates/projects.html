@@ -38,8 +38,8 @@
         <div class="col-md-4">
             <div class="input-group">
                 <input type="text" class="form-control" placeholder="Rechercher un projet..." id="projectSearch">
-                <button class="btn btn-outline-secondary" type="button" title="Rechercher">
-                    <i class="fas fa-search"></i>
+                <button class="btn btn-outline-secondary" type="button" title="Rechercher" aria-label="Rechercher">
+                    <i class="fas fa-search" aria-hidden="true"></i>
                 </button>
             </div>
         </div>
@@ -70,7 +70,15 @@
 
                     <!-- Titre et description -->
                     <h5 class="card-title">{{ project.title }}</h5>
-                    <div class="card-text quill-content">{{ project.description | safe }}</div>
+                    <div class="card-text quill-content" style="max-height: 150px; overflow: hidden;">
+                        {{ project.description | safe }}
+                    </div>
+                    <button class="btn btn-link btn-sm text-muted p-0" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#projectModal-{{ project.id }}"
+                            aria-label="Voir la description complète">
+                        Voir plus <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                    </button>
 
                     <!-- Technologies utilisées -->
                     <div class="mb-3">
@@ -127,8 +135,8 @@
                         </a>
                         <form action="{{ url_for('project.delete_project', project_id=project.id) }}" method="POST" style="display: inline;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce projet ?');" title="Supprimer le projet">
-                                <i class="fas fa-trash"></i>
+                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce projet ?');" title="Supprimer le projet" aria-label="Supprimer le projet">
+                                <i class="fas fa-trash" aria-hidden="true"></i>
                             </button>
                         </form>
                     </div>
@@ -156,6 +164,115 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modal pour ce projet -->
+        <div class="modal fade" id="projectModal-{{ project.id }}" tabindex="-1" aria-labelledby="projectModalLabel-{{ project.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="projectModalLabel-{{ project.id }}">{{ project.title }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Badge de catégorie et statut -->
+                        <div class="mb-3">
+                            <span class="badge rounded-pill bg-{{ project.category_color }}">
+                                {{ project.category }}
+                            </span>
+                            {% if project.status %}
+                            <span class="badge bg-{{ project.status_color }}">
+                                <i class="{{ project.status_icon }}"></i> {{ project.status }}
+                            </span>
+                            {% endif %}
+                            {% if project.is_featured %}
+                            <span class="badge bg-warning">
+                                <i class="fas fa-star"></i> Projet phare
+                            </span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Description complète -->
+                        <div class="quill-content mb-4">
+                            {{ project.description | safe }}
+                        </div>
+
+                        <!-- Technologies -->
+                        {% if project.technologies %}
+                        <div class="mb-4">
+                            <h6 class="fw-bold"><i class="fas fa-code me-2"></i>Technologies utilisées :</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for tech in project.technologies.split(',') %}
+                                <span class="badge bg-light text-dark">{{ tech.strip() }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Documents -->
+                        {% if project.documents %}
+                        <div class="mb-4">
+                            <h6 class="fw-bold"><i class="fas fa-file-alt me-2"></i>Documents :</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for doc in project.documents %}
+                                <a href="{{ url_for('project.download_document', document_id=doc.id) }}" 
+                                   class="btn btn-sm btn-outline-info" 
+                                   title="{{ doc.original_filename }}">
+                                    {% if doc.file_type and 'pdf' in doc.file_type %}
+                                        <i class="fas fa-file-pdf me-1"></i>
+                                    {% elif doc.file_type and 'word' in doc.file_type %}
+                                        <i class="fas fa-file-word me-1"></i>
+                                    {% elif doc.file_type and 'excel' in doc.file_type %}
+                                        <i class="fas fa-file-excel me-1"></i>
+                                    {% elif doc.file_type and 'powerpoint' in doc.file_type %}
+                                        <i class="fas fa-file-powerpoint me-1"></i>
+                                    {% else %}
+                                        <i class="fas fa-file me-1"></i>
+                                    {% endif %}
+                                    {{ doc.original_filename|truncate(20, true) }}
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Liens -->
+                        {% if project.demo_url or project.github_url or project.documentation_url %}
+                        <div class="mt-4">
+                            <h6 class="fw-bold mb-3"><i class="fas fa-link me-2"></i>Liens utiles :</h6>
+                            <div class="d-flex flex-wrap gap-3">
+                                {% if project.github_url %}
+                                <a href="{{ project.github_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark btn-sm">
+                                    <i class="fab fa-github me-1"></i> GitHub
+                                </a>
+                                {% endif %}
+                                {% if project.demo_url %}
+                                <a href="{{ project.demo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-external-link-alt me-1"></i> Démo
+                                </a>
+                                {% endif %}
+                                {% if project.documentation_url %}
+                                <a href="{{ project.documentation_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-info btn-sm">
+                                    <i class="fas fa-book me-1"></i> Documentation
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Statistiques -->
+                        <div class="mt-4 text-muted">
+                            <small>
+                                <i class="fas fa-eye me-1"></i> {{ project.views }} vues
+                                <span class="mx-2">•</span>
+                                <i class="fas fa-heart me-1"></i> {{ project.likes }} likes
+                                <span class="mx-2">•</span>
+                                <i class="fas fa-calendar me-1"></i> Créé le {{ project.created_at.strftime('%d/%m/%Y') }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         {% endfor %}
     </div>
 </div>
@@ -177,10 +294,10 @@
     font-size: 0.95rem;
     line-height: 1.5;
     color: #4a5568;
-    max-height: 150px;
     overflow: hidden;
     position: relative;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
+    transition: max-height 0.3s ease-out;
 }
 
 .quill-content::after {
@@ -191,45 +308,29 @@
     right: 0;
     height: 40px;
     background: linear-gradient(transparent, white);
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
 }
 
-.quill-content p {
-    margin-bottom: 0.5rem;
+.toggle-description {
+    color: #6c757d !important;
+    transition: color 0.2s ease;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-decoration: none !important;
+    display: block;
+    margin-top: 0.5rem;
 }
 
-.quill-content ul, .quill-content ol {
-    padding-left: 1.5rem;
-    margin-bottom: 0.5rem;
+.toggle-description:hover {
+    color: #495057 !important;
 }
 
-.quill-content blockquote {
-    border-left: 3px solid #e2e8f0;
-    padding-left: 1rem;
-    margin-left: 0;
-    color: #718096;
-}
-
-.quill-content a {
-    color: #3182ce;
-    text-decoration: none;
-}
-
-.quill-content a:hover {
-    text-decoration: underline;
-}
-
-.quill-content img {
-    max-width: 100%;
-    height: auto;
-    margin: 0.5rem 0;
-}
-
-.quill-content code {
-    background-color: #f7fafc;
-    padding: 0.2rem 0.4rem;
-    border-radius: 0.25rem;
-    font-size: 0.875em;
-    color: #2d3748;
+.toggle-description i {
+    font-size: 0.9rem;
+    margin-left: 0.25rem;
+    transition: transform 0.3s ease;
 }
 
 .project-image {
@@ -327,10 +428,50 @@
         height: 200px;
     }
 }
+
+.quill-content p {
+    margin-bottom: 0.5rem;
+}
+
+.quill-content ul, .quill-content ol {
+    padding-left: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.quill-content blockquote {
+    border-left: 3px solid #e2e8f0;
+    padding-left: 1rem;
+    margin-left: 0;
+    color: #718096;
+}
+
+.quill-content a {
+    color: #3182ce;
+    text-decoration: none;
+}
+
+.quill-content a:hover {
+    text-decoration: underline;
+}
+
+.quill-content img {
+    max-width: 100%;
+    height: auto;
+    margin: 0.5rem 0;
+}
+
+.quill-content code {
+    background-color: #f7fafc;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+    color: #2d3748;
+}
 </style>
 {% endblock %}
 
 {% block extra_js %}
+{{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Récupérer le token CSRF
@@ -453,6 +594,49 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    // Fonction pour vérifier si le contenu nécessite un bouton "Voir plus"
+    function checkContentOverflow() {
+        document.querySelectorAll('.quill-content').forEach(content => {
+            if (!content.closest('.modal')) {  // Ne vérifie que les contenus hors modal
+                const button = content.nextElementSibling;
+                if (button && button.hasAttribute('data-bs-toggle')) {
+                    button.style.display = content.scrollHeight > 150 ? 'inline-block' : 'none';
+                }
+            }
+        });
+    }
+
+    // Vérifier après le chargement complet de la page
+    window.addEventListener('load', checkContentOverflow);
+    
+    // Vérifier après le chargement des images
+    window.addEventListener('load', function() {
+        const images = document.querySelectorAll('img');
+        let loadedImages = 0;
+        
+        function imageLoaded() {
+            loadedImages++;
+            if (loadedImages === images.length) {
+                checkContentOverflow();
+            }
+        }
+        
+        images.forEach(img => {
+            if (img.complete) {
+                imageLoaded();
+            } else {
+                img.addEventListener('load', imageLoaded);
+            }
+        });
+    });
+
+    // Vérifier lors du redimensionnement de la fenêtre
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(checkContentOverflow, 250);
+    });
 });
 </script>
 {% endblock %} 
