@@ -9,8 +9,10 @@
             <article class="blog-post">
                 {% if article['image_path'] %}
                 <div class="article-images mb-4">
-                    {% for image_path in article['image_path'].split(',') if image_path.strip() %}
-                    <img src="{{ url_for('uploads.serve_upload', filename=image_path.replace('uploads/', '')) }}" class="img-fluid rounded mb-2" alt="{{ article['title'] }}">
+                    {% for image_path in article['image_path'].split(',') %}
+                    <div class="text-center mb-4">
+                        <img src="{{ url_for('uploads.serve_upload', filename=image_path.replace('uploads/', '')) }}" class="img-fluid rounded" alt="{{ article['title'] }}">
+                    </div>
                     {% endfor %}
                 </div>
                 {% endif %}
