@@ -5,6 +5,7 @@ from .admin import admin_bp
 from .comment import comment_bp
 from .users import user_bp
 from .project import project_bp
+from .uploads import uploads_bp
 
 # Liste de tous les blueprints à enregistrer
 blueprints = [
@@ -14,5 +15,6 @@ blueprints = [
     main_bp,
     admin_bp,
     user_bp,
-    project_bp
+    project_bp,
+    uploads_bp
 ] 

@@ -256,7 +256,7 @@
                                 {{ doc.original_filename }}
                             </span>
                             <div>
-                                <a href="{{ url_for('static', filename=doc.file_path) }}" 
+                                <a href="{{ url_for('uploads.serve_upload', filename=doc.file_path.replace('uploads/', '')) }}" 
                                    class="btn btn-sm btn-primary me-2" target="_blank">
                                     <i class="fas fa-download"></i>
                                 </a>
@@ -284,7 +284,7 @@
                     <div class="image-gallery" id="sortable-gallery">
                         {% for image_path in article.image_path.split(',') if image_path.strip() %}
                         <div class="image-item" data-path="{{ image_path }}">
-                            <img src="{{ url_for('static', filename=image_path) }}" alt="Image de l'article">
+                            <img src="{{ url_for('uploads.serve_upload', filename=image_path.replace('uploads/', '')) }}" alt="Image de l'article">
                             <button type="button" class="btn btn-danger btn-sm remove-image" 
                                     data-path="{{ image_path }}"
                                     title="Supprimer l'image">
@@ -315,25 +315,55 @@
 
 {% if article %}
 <script>
-function deleteDocument(docId) {
+// Suppression de document
+window.deleteDocument = function(documentId) {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
-        fetch(`/admin/article/document/${docId}/delete`, {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        
+        fetch(`/admin/article/document/${documentId}/delete`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token() }}'
-            }
+                'X-CSRFToken': csrfToken
+            },
+            credentials: 'same-origin'
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                if (response.headers.get('content-type')?.includes('text/html')) {
+                    throw new Error('Session expirée. Veuillez rafraîchir la page.');
+                }
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Erreur lors de la suppression du document');
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
-                location.reload();
+                // Supprimer l'élément de la liste
+                const documentElement = document.querySelector(`[data-document-id="${documentId}"]`);
+                if (documentElement) {
+                    documentElement.remove();
+                }
+                // Recharger la page si plus de documents
+                const documentsList = document.querySelector('.list-group');
+                if (documentsList && documentsList.children.length === 0) {
+                    location.reload();
+                }
             } else {
-                alert('Erreur lors de la suppression du document');
+                throw new Error(data.error || 'Erreur lors de la suppression du document');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert(error.message || 'Erreur lors de la suppression du document');
+            if (error.message.includes('Session expirée')) {
+                location.reload();
             }
         });
     }
-}
+};
 </script>
 {% endif %}
 {% endblock %}

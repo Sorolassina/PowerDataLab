@@ -8,7 +8,7 @@
         {% for article in articles %}
         <article class="card mb-4">
             {% if article.image_path %}
-            <img src="{{ url_for('static', filename=article.image_path.split(',')[0]) }}" class="card-img-top" alt="{{ article.title }}">
+            <img src="{{ url_for('uploads.serve_upload', filename=article.image_path.replace('uploads/', '')) }}" class="card-img-top" alt="{{ article.title }}">
             {% endif %}
             <div class="card-body">
                 <h2 class="card-title">

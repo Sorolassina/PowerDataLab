@@ -519,4 +519,19 @@ a:hover {
 
 .article-meta a {
     text-decoration: none;
+}
+
+
+
+/* Pour les écrans plus petits */
+@media (max-width: 768px) {
+    .article-content {
+        padding: 0.5rem;
+        margin: 0 5px;
+    }
+
+    .prose {
+        max-width: 100%;
+        padding: 0 15px;
+    }
 } 

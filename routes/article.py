@@ -23,6 +23,7 @@ from werkzeug.utils import secure_filename
 from slugify import slugify
 from models.base import SessionLocal
 from models.article_document import ArticleDocument
+from routes.uploads import save_file, save_files, delete_file
 
 article_bp = Blueprint('article', __name__)
 
@@ -49,33 +50,18 @@ def run_fix_document_paths():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 def save_document(file, article_id):
-    if file and allowed_document(file.filename):
-        filename = secure_filename(file.filename)
-        # Générer un nom unique pour éviter les conflits
-        base, ext = os.path.splitext(filename)
-        unique_filename = f"{base}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}"
-        
-        # Utiliser le dossier uploads
-        upload_folder = os.path.join(current_app.static_folder, 'uploads')
-        os.makedirs(upload_folder, exist_ok=True)
-        
-        # Sauvegarder le fichier
-        # Utiliser des slashes pour le chemin stocké en base de données
-        file_path = 'uploads/' + unique_filename
-        # Utiliser os.path.join pour le chemin système réel
-        full_path = os.path.join(current_app.static_folder, 'uploads', unique_filename)
-        file.save(full_path)
-        
+    file_path = save_file(file, 'document')
+    if file_path:
         # Créer l'entrée dans la base de données
+        full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], os.path.basename(file_path))
         document = ArticleDocument(
             article_id=article_id,
-            filename=unique_filename,
-            original_filename=filename,
+            filename=os.path.basename(file_path),
+            original_filename=file.filename,
             file_path=file_path,
             file_size=os.path.getsize(full_path),
-            file_type=ext[1:]  # Enlever le point du début de l'extension
+            file_type=os.path.splitext(file.filename)[1][1:]  # Enlever le point du début de l'extension
         )
-        
         return document
     return None
 
@@ -220,19 +206,7 @@ def new_article():
             image_paths = []
             if 'images' in request.files:
                 files = request.files.getlist('images')
-                for file in files:
-                    if file and file.filename and allowed_file(file.filename):
-                        filename = secure_filename(file.filename)
-                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                        filename = f"{timestamp}_{filename}"
-                        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-                        file.save(file_path)
-                        rel_path = os.path.join('uploads', filename).replace('\\', '/')
-                        image_paths.append(rel_path)
-            
-            # Nettoyer la liste (supprimer les vides)
-            image_paths = [p for p in image_paths if p]
-            image_path = ','.join(image_paths) if image_paths else None
+                image_paths = save_files(files, 'image')
             
             article = Article(
                 title=title,
@@ -240,7 +214,7 @@ def new_article():
                 content=content,
                 category_id=category_id,
                 author_id=current_user.id,
-                image_path=image_path
+                image_path=','.join(image_paths) if image_paths else None
             )
             g.db.add(article)
             g.db.flush()  # Pour obtenir l'ID de l'article
@@ -275,31 +249,6 @@ def edit_article(article_id):
     article = g.db.query(Article).filter_by(id=article_id).first()
     
     if request.method == 'POST':
-        print(f"[DEBUG] Début de l'édition de l'article {article_id}")
-        print(f"[DEBUG] UPLOAD_FOLDER configuré : {current_app.config['UPLOAD_FOLDER']}")
-        
-        # Vérifier si le dossier existe et ses permissions
-        upload_folder = current_app.config['UPLOAD_FOLDER']
-        print(f"[DEBUG] Vérification du dossier upload : {upload_folder}")
-        if os.path.exists(upload_folder):
-            print(f"[DEBUG] Le dossier existe")
-            # Vérifier les permissions
-            try:
-                test_file = os.path.join(upload_folder, 'test_permissions.txt')
-                with open(test_file, 'w') as f:
-                    f.write('test')
-                os.remove(test_file)
-                print(f"[DEBUG] Le dossier a les bonnes permissions d'écriture")
-            except Exception as e:
-                print(f"[DEBUG] Erreur de permissions sur le dossier : {str(e)}")
-        else:
-            print(f"[DEBUG] Le dossier n'existe pas, tentative de création")
-            try:
-                os.makedirs(upload_folder, exist_ok=True)
-                print(f"[DEBUG] Dossier créé avec succès")
-            except Exception as e:
-                print(f"[DEBUG] Erreur lors de la création du dossier : {str(e)}")
-
         article.title = request.form['title']
         article.content = request.form['content']
         article.category_id = request.form['category_id']
@@ -307,48 +256,13 @@ def edit_article(article_id):
         
         # Gestion des images existantes et nouvelles
         existing_images = request.form.getlist('existing_images')
-        print(f"[DEBUG] Images existantes : {existing_images}")
         image_paths = [img.replace('\\', '/') for img in existing_images if img]
         
         if 'images' in request.files:
             files = request.files.getlist('images')
-            print(f"[DEBUG] Nombre de nouvelles images : {len(files)}")
-            for file in files:
-                if file and file.filename:
-                    print(f"[DEBUG] Traitement de l'image : {file.filename}")
-                    if allowed_file(file.filename):
-                        try:
-                            filename = secure_filename(file.filename)
-                            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                            filename = f"{timestamp}_{filename}"
-                            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-                            print(f"[DEBUG] Tentative de sauvegarde vers : {file_path}")
-                            
-                            # Créer le dossier parent si nécessaire
-                            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-                            
-                            # Sauvegarder le fichier
-                            file.save(file_path)
-                            print(f"[DEBUG] Fichier sauvegardé avec succès à {file_path}")
-                            
-                            # Vérifier que le fichier existe après la sauvegarde
-                            if os.path.exists(file_path):
-                                print(f"[DEBUG] Vérification : le fichier existe bien sur le disque")
-                                rel_path = os.path.join('uploads', filename).replace('\\', '/')
-                                image_paths.append(rel_path)
-                                print(f"[DEBUG] Chemin relatif ajouté : {rel_path}")
-                            else:
-                                print(f"[DEBUG] ERREUR : Le fichier n'existe pas après la sauvegarde")
-                            
-                        except Exception as e:
-                            print(f"[DEBUG] Erreur lors de la sauvegarde : {str(e)}")
-                            print(f"[DEBUG] Type d'erreur : {type(e)}")
-                    else:
-                        print(f"[DEBUG] Type de fichier non autorisé : {file.filename}")
+            new_paths = save_files(files, 'image')
+            image_paths.extend(new_paths)
         
-        # Nettoyer la liste (supprimer les vides)
-        image_paths = [p for p in image_paths if p]
-        print(f"[DEBUG] Chemins d'images finaux : {image_paths}")
         article.image_path = ','.join(image_paths) if image_paths else None
         
         # Gérer l'upload des documents
@@ -383,13 +297,8 @@ def delete_article_route(article_id):
     try:
         # Supprimer l'image si elle existe
         if article.image_path:
-            try:
-                for image_path in article.image_path.split(','):
-                    full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], os.path.basename(image_path))
-                    if os.path.exists(full_path):
-                        os.remove(full_path)
-            except Exception as e:
-                print(f"Erreur lors de la suppression de l'image : {e}")
+            for image_path in article.image_path.split(','):
+                delete_file(os.path.basename(image_path))
         
         # Supprimer l'article
         g.db.delete(article)
@@ -406,15 +315,41 @@ def delete_article_route(article_id):
 @article_bp.route('/admin/article/document/<int:id>/delete', methods=['POST'])
 @admin_required
 def delete_document(id):
-    document = g.db.query(ArticleDocument).get_or_404(id)
-    
-    # Supprimer le fichier physique
-    file_path = os.path.join(current_app.static_folder, document.file_path)
-    if os.path.exists(file_path):
-        os.remove(file_path)
-    
-    # Supprimer l'entrée de la base de données
-    g.db.delete(document)
-    g.db.commit()
-    
-    return jsonify({'success': True})
+    # Vérifier le token CSRF
+    csrf_token = request.headers.get('X-CSRFToken')
+    if not csrf_token:
+        return jsonify({
+            'success': False,
+            'error': 'Token CSRF manquant'
+        }), 403
+
+    document = g.db.query(ArticleDocument).get(id)
+    if document is None:
+        return jsonify({
+            'success': False,
+            'error': f"Le document avec l'ID {id} n'existe pas"
+        }), 404
+
+    try:
+        # Essayer de supprimer le fichier physique
+        file_deleted = delete_file(os.path.basename(document.file_path))
+        
+        # Supprimer l'entrée de la base de données, que le fichier physique existe ou non
+        g.db.delete(document)
+        g.db.commit()
+        
+        message = f'Le document "{document.original_filename}" a été supprimé avec succès'
+        if not file_deleted:
+            message += ' (le fichier physique était déjà absent)'
+        
+        return jsonify({
+            'success': True,
+            'message': message
+        })
+    except Exception as e:
+        g.db.rollback()
+        print(f"Erreur lors de la suppression du document {id}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f"Une erreur est survenue lors de la suppression du document: {str(e)}"
+        }), 500

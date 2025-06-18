@@ -32,9 +32,9 @@ app = Flask(__name__)
 
 # Définir le dossier d'upload en fonction de l'environnement
 if os.environ.get('FLASK_ENV') == 'production':
-    UPLOAD_FOLDER = '/app/static/uploads'  # Chemin absolu pour Render
+    UPLOAD_FOLDER = '/mnt/data'  # Chemin absolu pour Render
 else:
-    UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
+    UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'uploads')
 
 app.config.update(
     SECRET_KEY=os.environ.get('SECRET_KEY', 'your-secret-key-here'),
@@ -145,6 +145,9 @@ def after_request(response):
     print(f"[DEBUG] Réponse status code: {response.status_code}")
     if response.status_code == 400:
         print(f"[DEBUG] Bad Request Details: {response.get_data(as_text=True)}")
+    # Ajouter le token CSRF dans les en-têtes de réponse
+    if 'text/html' in response.headers.get('Content-Type', ''):
+        response.headers.set('X-CSRFToken', generate_csrf())
     return response
 
 # Routes principales
@@ -178,6 +181,14 @@ def load_categories():
 def inject_categories():
     return dict(categories=g.get('categories', []))
 
+@app.context_processor
+def utility_processor():
+    """Injecte des utilitaires dans tous les templates, y compris le token CSRF"""
+    return {
+        'csrf_token': generate_csrf,
+        'categories': g.get('categories', [])
+    }
+
 class CSRFProtectForm(FlaskForm):
     pass
 
@@ -193,36 +204,26 @@ def upload_image():
     if file.filename == '':
         return jsonify({'error': 'Aucun fichier sélectionné'}), 400
     
-    if file and allowed_file(file.filename):
-        try:
-            # Générer un nom de fichier unique
-            filename = secure_filename(file.filename)
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            unique_filename = f"{timestamp}_{filename}"
-            
-            # Créer le dossier uploads s'il n'existe pas
-            upload_folder = os.path.join(app.static_folder, 'uploads')
-            os.makedirs(upload_folder, exist_ok=True)
-            
-            # Sauvegarder le fichier
-            file_path = os.path.join(upload_folder, unique_filename)
-            file.save(file_path)
-            
+    try:
+        from routes.uploads import save_file
+        file_path = save_file(file, 'image')
+        if file_path:
             # Retourner l'URL de l'image pour TinyMCE
-            image_url = url_for('static', filename=f'uploads/{unique_filename}')
+            image_url = url_for('uploads.serve_upload', filename=os.path.basename(file_path))
             return jsonify({
                 'location': image_url
             })
-        except Exception as e:
-            app.logger.error(f"Erreur lors de l'upload d'image: {str(e)}")
-            return jsonify({'error': 'Erreur lors de l\'upload de l\'image'}), 500
-    
-    return jsonify({'error': 'Type de fichier non autorisé'}), 400
+        return jsonify({'error': 'Type de fichier non autorisé'}), 400
+        
+    except Exception as e:
+        app.logger.error(f"Erreur lors de l'upload d'image: {str(e)}")
+        return jsonify({'error': 'Erreur lors de l\'upload de l\'image'}), 500
 
 @app.route('/get-csrf-token')
 def get_csrf_token():
     """Route pour obtenir un nouveau token CSRF"""
-    return jsonify({'csrf_token': generate_csrf()})
+    token = generate_csrf()
+    return jsonify({'csrf_token': token})
 
 @login_manager.user_loader
 def load_user(user_id):

@@ -54,7 +54,7 @@
             <div class="card h-100">
                 <!-- Image principale du projet -->
                 {% if project.image_path %}
-                <img src="{{ url_for('static', filename=project.image_path) }}" 
+                <img src="{{ url_for('uploads.serve_upload', filename=project.image_path.replace('uploads/', '')) }}" 
                      class="card-img-top project-image" 
                      alt="{{ project.title }}">
                 {% endif %}

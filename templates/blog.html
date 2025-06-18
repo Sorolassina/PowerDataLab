@@ -36,7 +36,7 @@
                 <article class="article-card">
                     {% if article.image_path %}
                     <div class="article-image">
-                        <img src="{{ url_for('static', filename=article.image_path.split(',')[0]) }}" alt="{{ article.title }}">
+                        <img src="{{ url_for('uploads.serve_upload', filename=article.image_path.split(',')[0].replace('uploads/', '')) }}" alt="{{ article.title }}">
                     </div>
                     {% endif %}
                     <div class="article-content">

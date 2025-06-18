@@ -134,7 +134,7 @@
                             {% endif %}
                             {% if project and project.image_path %}
                                 <div class="mt-2">
-                                    <img src="{{ url_for('static', filename=project.image_path) }}" 
+                                    <img src="{{ url_for('uploads.serve_upload', filename=project.image_path.replace('uploads/', '')) }}" 
                                          alt="Image actuelle" 
                                          class="project-image">
                                 </div>
@@ -461,14 +461,27 @@
         // Suppression de document
         window.deleteDocument = function(documentId) {
             if (confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+                
                 fetch(`/admin/projects/documents/${documentId}/delete`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-                    }
+                        'X-CSRFToken': csrfToken
+                    },
+                    credentials: 'same-origin'
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.headers.get('content-type')?.includes('text/html')) {
+                            throw new Error('Session expirée. Veuillez rafraîchir la page.');
+                        }
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Erreur lors de la suppression du document');
+                        });
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
                         // Supprimer l'élément de la liste
@@ -482,12 +495,15 @@
                             location.reload();
                         }
                     } else {
-                        alert('Erreur lors de la suppression du document');
+                        throw new Error(data.error || 'Erreur lors de la suppression du document');
                     }
                 })
                 .catch(error => {
                     console.error('Erreur:', error);
-                    alert('Erreur lors de la suppression du document');
+                    alert(error.message || 'Erreur lors de la suppression du document');
+                    if (error.message.includes('Session expirée')) {
+                        location.reload();
+                    }
                 });
             }
         };

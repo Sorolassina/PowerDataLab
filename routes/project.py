@@ -12,6 +12,7 @@ from flask import jsonify
 import mimetypes
 from flask_login import current_user
 from flask_wtf import FlaskForm
+from routes.uploads import save_file, save_files, delete_file
 
 project_bp = Blueprint('project', __name__)
 
@@ -41,14 +42,7 @@ def new_project():
             # Gestion de l'image
             image_path = None
             if form.image.data:
-                file = form.image.data
-                if file and file.filename:
-                    filename = secure_filename(file.filename)
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                    filename = f"{timestamp}_{filename}"
-                    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-                    file.save(file_path)
-                    image_path = os.path.join('uploads', filename).replace('\\', '/')
+                image_path = save_file(form.image.data, 'image')
 
             # Création du projet
             project = Project(
@@ -64,31 +58,26 @@ def new_project():
                 status=form.status.data
             )
             g.db.add(project)
-            g.db.flush()  # Pour obtenir l'ID du projet
+            g.db.flush()
 
             # Gestion des documents
             if form.documents.data:
                 files = request.files.getlist('documents')
                 for file in files:
                     if file and file.filename:
-                        # Sécuriser et sauvegarder le fichier
-                        original_filename = file.filename
-                        filename = secure_filename(original_filename)
-                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                        filename = f"{timestamp}_{filename}"
-                        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-                        file.save(file_path)
-                        
-                        # Créer l'entrée dans la base de données
-                        document = ProjectDocument(
-                            project_id=project.id,
-                            filename=filename,
-                            original_filename=original_filename,
-                            file_path=os.path.join('uploads', filename).replace('\\', '/'),
-                            file_size=os.path.getsize(file_path),
-                            file_type=mimetypes.guess_type(original_filename)[0]
-                        )
-                        g.db.add(document)
+                        file_path = save_file(file, 'document')
+                        if file_path:
+                            # Créer l'entrée dans la base de données
+                            full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], os.path.basename(file_path))
+                            document = ProjectDocument(
+                                project_id=project.id,
+                                filename=os.path.basename(file_path),
+                                original_filename=file.filename,
+                                file_path=file_path,
+                                file_size=os.path.getsize(full_path),
+                                file_type=mimetypes.guess_type(file.filename)[0]
+                            )
+                            g.db.add(document)
 
             g.db.commit()
             flash('Projet créé avec succès !', 'success')
@@ -120,14 +109,11 @@ def edit_project(project_id):
         try:
             # Gestion de l'image
             if form.image.data:
-                file = form.image.data
-                if file and file.filename:
-                    filename = secure_filename(file.filename)
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                    filename = f"{timestamp}_{filename}"
-                    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-                    file.save(file_path)
-                    project.image_path = os.path.join('uploads', filename).replace('\\', '/')
+                # Supprimer l'ancienne image si elle existe
+                if project.image_path:
+                    delete_file(os.path.basename(project.image_path))
+                # Sauvegarder la nouvelle image
+                project.image_path = save_file(form.image.data, 'image')
 
             # Mise à jour des autres champs
             project.title = form.title.data
@@ -145,24 +131,19 @@ def edit_project(project_id):
                 files = request.files.getlist('documents')
                 for file in files:
                     if file and file.filename:
-                        # Sécuriser et sauvegarder le fichier
-                        original_filename = file.filename
-                        filename = secure_filename(original_filename)
-                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                        filename = f"{timestamp}_{filename}"
-                        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-                        file.save(file_path)
-                        
-                        # Créer l'entrée dans la base de données
-                        document = ProjectDocument(
-                            project_id=project.id,
-                            filename=filename,
-                            original_filename=original_filename,
-                            file_path=os.path.join('uploads', filename).replace('\\', '/'),
-                            file_size=os.path.getsize(file_path),
-                            file_type=mimetypes.guess_type(original_filename)[0]
-                        )
-                        g.db.add(document)
+                        file_path = save_file(file, 'document')
+                        if file_path:
+                            # Créer l'entrée dans la base de données
+                            full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], os.path.basename(file_path))
+                            document = ProjectDocument(
+                                project_id=project.id,
+                                filename=os.path.basename(file_path),
+                                original_filename=file.filename,
+                                file_path=file_path,
+                                file_size=os.path.getsize(full_path),
+                                file_type=mimetypes.guess_type(file.filename)[0]
+                            )
+                            g.db.add(document)
 
             g.db.commit()
             flash('Projet modifié avec succès !', 'success')
@@ -177,55 +158,29 @@ def edit_project(project_id):
 @project_bp.route('/project/delete/<int:project_id>', methods=['POST'])
 @admin_required
 def delete_project(project_id):
-    print(f"[DEBUG] Tentative de suppression du projet {project_id}")
-    print(f"[DEBUG] Utilisateur connecté: {current_user.id}")
-    print(f"[DEBUG] Méthode de la requête: {request.method}")
-    print(f"[DEBUG] Headers de la requête: {dict(request.headers)}")
-    print(f"[DEBUG] Données du formulaire: {dict(request.form)}")
-    print(f"[DEBUG] Token CSRF dans la session: {session.get('csrf_token')}")
-    print(f"[DEBUG] Token CSRF dans le formulaire: {request.form.get('csrf_token')}")
-    
-    # Vérifier le token CSRF
-    if not request.form.get('csrf_token'):
-        print("[DEBUG] Token CSRF manquant")
-        flash('Token CSRF manquant.', 'danger')
-        return redirect(url_for('project.projects'))
-    
     project = g.db.query(Project).filter(Project.id == project_id).first()
-    print(f"[DEBUG] Projet trouvé: {project is not None}")
     
     if not project:
-        print("[DEBUG] Projet non trouvé")
         flash('Projet non trouvé.', 'danger')
         return redirect(url_for('project.projects'))
     
     try:
-        print("[DEBUG] Début de la suppression")
         # Supprimer l'image si elle existe
         if project.image_path:
-            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 
-                                   os.path.basename(project.image_path))
-            if os.path.exists(file_path):
-                os.remove(file_path)
-                print(f"[DEBUG] Image supprimée: {file_path}")
+            delete_file(os.path.basename(project.image_path))
         
         # Supprimer les documents associés
         for document in project.documents:
-            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], document.filename)
-            if os.path.exists(file_path):
-                os.remove(file_path)
-                print(f"[DEBUG] Document supprimé: {file_path}")
+            delete_file(os.path.basename(document.file_path))
         
         # Supprimer le projet de la base de données
         g.db.delete(project)
         g.db.commit()
-        print("[DEBUG] Suppression réussie")
         flash('Projet supprimé avec succès.', 'success')
     except Exception as e:
-        print(f"[DEBUG] Erreur lors de la suppression: {str(e)}")
         g.db.rollback()
-        print(f"Erreur lors de la suppression du projet : {e}")
         flash('Erreur lors de la suppression du projet.', 'danger')
+        print(f"Erreur lors de la suppression du projet : {e}")
     
     return redirect(url_for('project.projects'))
 
@@ -276,17 +231,41 @@ def download_document(document_id):
 @login_required
 @admin_required
 def delete_document(document_id):
-    document = g.db.query(ProjectDocument).get_or_404(document_id)
+    # Vérifier le token CSRF
+    csrf_token = request.headers.get('X-CSRFToken')
+    if not csrf_token:
+        return jsonify({
+            'success': False,
+            'error': 'Token CSRF manquant'
+        }), 403
+
+    document = g.db.query(ProjectDocument).get(document_id)
+    if not document:
+        return jsonify({
+            'success': False,
+            'error': f"Le document avec l'ID {document_id} n'existe pas"
+        }), 404
+
     try:
-        # Supprimer le fichier physique
-        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], document.filename)
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        # Essayer de supprimer le fichier physique
+        file_deleted = delete_file(os.path.basename(document.file_path))
         
-        # Supprimer l'entrée de la base de données
+        # Supprimer l'entrée de la base de données, que le fichier physique existe ou non
         g.db.delete(document)
         g.db.commit()
-        return jsonify({'success': True})
+        
+        message = f'Le document "{document.original_filename}" a été supprimé avec succès'
+        if not file_deleted:
+            message += ' (le fichier physique était déjà absent)'
+        
+        return jsonify({
+            'success': True,
+            'message': message
+        })
     except Exception as e:
         g.db.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        print(f"Erreur lors de la suppression du document {document_id}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f"Une erreur est survenue lors de la suppression du document: {str(e)}"
+        }), 500

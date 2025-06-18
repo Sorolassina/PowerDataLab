@@ -5,6 +5,9 @@ from .article import Article
 from .comment import Comment
 from .newsletter import Newsletter, NewsletterSubscriber, NewsletterHistory
 from .page_view import PageView
+from .project_document import ProjectDocument
+from .article_document import ArticleDocument
+from .project import Project
 
 # Liste de tous les modèles pour Alembic
 __all__ = [
@@ -16,5 +19,8 @@ __all__ = [
     'Newsletter',
     'NewsletterSubscriber',
     'NewsletterHistory',
-    'PageView'
+    'PageView',
+    'Project',
+    'ProjectDocument',
+    'ArticleDocument'
 ] 
