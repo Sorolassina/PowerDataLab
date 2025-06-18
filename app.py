@@ -32,7 +32,7 @@ app = Flask(__name__)
 
 # Définir le dossier d'upload en fonction de l'environnement
 if os.environ.get('FLASK_ENV') == 'production':
-    UPLOAD_FOLDER = '/mnt/data'  # Chemin absolu pour Render
+    UPLOAD_FOLDER = '/var/data'  # Chemin absolu pour Render
 else:
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'uploads')
 
