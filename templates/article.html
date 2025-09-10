@@ -39,7 +39,7 @@
                     </div>
                 </header>
                 
-                <div class="article-content prose">
+                <div class="article-content prose" id="article-content">
                     {{ article['content']|safe }}
                 </div>
 
@@ -326,13 +326,13 @@
 /* Gestion des paragraphes vides de Quill */
 .prose p:empty,
 .prose p:has(br):only-child {
-    margin: 0;
-    line-height: 0.5;
+    margin: 0.5rem 0;  /* Espacement normal entre paragraphes */
+    line-height: 1.6;
 }
 
 /* Ajustement pour les paragraphes avec style line-height */
 .prose p[style*="line-height: 1"] {
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.5rem;  /* Espacement normal */
 }
 
 /* Espacement pour les hashtags */
@@ -523,6 +523,8 @@
 
 {% block extra_js %}
 {{ super() }}
+<!-- Marked.js pour le rendu Markdown -->
+<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const commentForm = document.querySelector('.comment-form form');
@@ -545,9 +547,45 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Convertir le contenu Markdown en HTML
+    const articleContent = document.getElementById('article-content');
+    if (articleContent && typeof marked !== 'undefined') {
+        // Configuration de marked.js
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            highlight: function(code, lang) {
+                // Utiliser Prism.js pour la coloration syntaxique si disponible
+                if (typeof Prism !== 'undefined' && lang && Prism.languages[lang]) {
+                    return Prism.highlight(code, Prism.languages[lang], lang);
+                }
+                return code;
+            }
+        });
+        
+        // Convertir le contenu Markdown
+        const markdownContent = articleContent.textContent || articleContent.innerText;
+        if (markdownContent.trim()) {
+            articleContent.innerHTML = marked.parse(markdownContent);
+        }
+    }
+    
     // Initialiser Prism.js pour la coloration syntaxique
     if (typeof Prism !== 'undefined') {
         Prism.highlightAll();
+    } else {
+        // Si Prism n'est pas encore chargé, attendre qu'il le soit
+        const checkPrism = setInterval(() => {
+            if (typeof Prism !== 'undefined') {
+                Prism.highlightAll();
+                clearInterval(checkPrism);
+            }
+        }, 100);
+        
+        // Arrêter la vérification après 5 secondes
+        setTimeout(() => {
+            clearInterval(checkPrism);
+        }, 5000);
     }
 });
 </script>

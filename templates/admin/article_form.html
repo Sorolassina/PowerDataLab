@@ -4,8 +4,9 @@
 
 {% block extra_css %}
 {{ super() }}
-<!-- Inclusion des styles Quill -->
-<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<!-- Inclusion des styles CodeMirror 5 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/monokai.min.css">
 <style>
 /* Layout principal */
 .admin-container {
@@ -64,13 +65,66 @@
 /* Styles du formulaire */
 .article-form {
     background: white;
-    padding: 2rem;
+    padding: 1rem;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Styles pour l'accordéon */
+.accordion {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.accordion-item {
+    border: 1px solid #dee2e6;
+    border-radius: 8px !important;
+    margin-bottom: 0.5rem;
+}
+
+.accordion-button {
+    background-color: #f8f9fa;
+    border: none;
+    font-weight: 500;
+    padding: 1rem 1.5rem;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: #e9ecef;
+    color: #495057;
+}
+
+.accordion-button:focus {
+    box-shadow: 0 0 0 0.25rem rgba(0,123,255,.25);
+}
+
+.accordion-body {
+    padding: 1.5rem;
+}
+
+/* Section contenu - taille fixe pour l'éditeur */
+#collapseContent .accordion-body {
+    padding: 1rem;
+    height: 500px;
+    display: flex;
+    flex-direction: column;
 }
 
 .form-group {
+    margin-bottom: 2rem;
+}
+
+/* Groupe de formulaire pour le contenu - taille fixe */
+.form-group.content-group {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
     margin-bottom: 2rem;
 }
 
@@ -93,49 +147,67 @@
     margin-top: 2rem;
 }
 
-/* Styles pour Quill */
+/* Styles pour CodeMirror 5 */
 #editor {
-    height: 500px;
+    height: 400px;
     margin-bottom: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
 }
 
-.ql-editor {
-    min-height: 400px;
+.CodeMirror {
+    height: 100%;
     font-size: 16px;
+    line-height: 1.6;
+    font-family: 'Fira Code', 'Monaco', 'Consolas', 'Courier New', monospace;
 }
 
-.ql-toolbar.ql-snow {
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
+.CodeMirror-focused {
+    outline: none;
 }
 
-.ql-container.ql-snow {
-    border-bottom-left-radius: 4px;
-    border-bottom-right-radius: 4px;
+.CodeMirror-scroll {
+    height: 100%;
 }
 
-/* Style pour le bouton personnalisé de code */
-.ql-toolbar .ql-code-language {
-    background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIgM0gxNFY1SDJWM1oiIGZpbGw9IiM2NjY2NjYiLz4KPHA+PHBhdGggZD0iTTIgN0gxNFY5SDJWN1oiIGZpbGw9IiM2NjY2NjYiLz4KPHA+PHBhdGggZD0iTTIgMTFIMTRWMTNIMkgxMVoiIGZpbGw9IiM2NjY2NjYiLz4KPC9zdmc+') no-repeat center;
-    background-size: 16px 16px;
-    width: 28px;
-    height: 28px;
-    border: none;
+/* Styles pour la barre d'outils */
+.editor-toolbar {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+    border-radius: 4px 4px 0 0;
+}
+
+.editor-toolbar button {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 4px;
     cursor: pointer;
-}
-
-.ql-toolbar .ql-code-language:hover {
-    background-color: #f0f0f0;
-    border-radius: 3px;
-}
-
-.ql-toolbar .ql-code-language:before {
-    content: "{}";
-    font-family: monospace;
-    font-weight: bold;
-    color: #666;
     font-size: 14px;
-    line-height: 28px;
+    transition: all 0.2s;
+}
+
+.editor-toolbar button:hover {
+    background: #e9ecef;
+    border-color: #007bff;
+}
+
+.editor-toolbar button.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.editor-toolbar select {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
 }
 
 /* Styles pour la galerie d'images */
@@ -227,6 +299,67 @@
     .admin-menu li {
         margin: 0;
     }
+    
+    .article-form {
+        max-height: 70vh;
+        min-height: 400px;
+    }
+    
+    #collapseContent .accordion-body {
+        height: 400px;
+    }
+    
+    #editor {
+        height: 300px;
+        max-height: 300px;
+    }
+    
+    .CodeMirror {
+        height: 300px;
+        max-height: 300px;
+    }
+    
+    .CodeMirror-scroll {
+        height: 300px;
+        max-height: 300px;
+    }
+}
+
+@media (max-width: 768px) {
+    .article-form {
+        max-height: 60vh;
+        min-height: 350px;
+        padding: 1rem;
+    }
+    
+    #collapseContent .accordion-body {
+        height: 350px;
+    }
+    
+    #editor {
+        height: 250px;
+        max-height: 250px;
+    }
+    
+    .CodeMirror {
+        height: 250px;
+        max-height: 250px;
+    }
+    
+    .CodeMirror-scroll {
+        height: 250px;
+        max-height: 250px;
+    }
+    
+    .editor-toolbar {
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+    
+    .editor-toolbar button {
+        padding: 0.25rem 0.5rem;
+        font-size: 12px;
+    }
 }
 </style>
 {% endblock %}
@@ -247,104 +380,193 @@
         
         <form method="POST" enctype="multipart/form-data" class="article-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="form-group">
-                <label for="title">Titre</label>
-                <input type="text" class="form-control" id="title" name="title" value="{{ article.title if article else '' }}" required>
-            </div>
             
-            <div class="form-group">
-                <label for="content">Contenu</label>
-                <!-- Div pour Quill -->
-                <div id="editor"></div>
-                <!-- Textarea caché pour stocker le contenu -->
-                <textarea style="display: none;" id="content" name="content">{{ article.content if article else '' }}</textarea>
-            </div>
-            
-            <div class="form-group">
-                <label for="category_id">Catégorie</label>
-                <select class="form-control" id="category_id" name="category_id" required>
-                    <option value="">Sélectionner une catégorie</option>
-                    {% for category in categories %}
-                    <option value="{{ category.id }}" {% if article and article.category_id == category.id %}selected{% endif %}>
-                        {{ category.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="documents">Documents (PDF, Word, Excel, etc.)</label>
-                <input type="file" class="form-control" id="documents" name="documents" multiple 
-                       accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
-                {% if article and article.documents %}
-                <div class="mt-3">
-                    <h5>Documents actuels :</h5>
-                    <ul class="list-group">
-                        {% for doc in article.documents %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span>
-                                <i class="fas fa-file me-2"></i>
-                                {{ doc.original_filename }}
-                            </span>
-                            <div>
-                                <a href="{{ url_for('uploads.serve_upload', filename=doc.filename) }}" 
-                                   class="btn btn-sm btn-primary me-2" target="_blank">
-                                    <i class="fas fa-download"></i>
-                                </a>
-                                <button type="button" class="btn btn-sm btn-danger" 
-                                        onclick="deleteDocument('{{ doc.id }}')"
-                                        title="Supprimer le document">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+            <!-- Accordéon Bootstrap -->
+            <div class="accordion" id="articleAccordion">
+                <!-- Section Informations de base -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingBasic">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBasic" aria-expanded="false" aria-controls="collapseBasic">
+                            <i class="fas fa-info-circle me-2"></i> Informations de base
+                        </button>
+                    </h2>
+                    <div id="collapseBasic" class="accordion-collapse collapse" aria-labelledby="headingBasic" data-bs-parent="#articleAccordion">
+                        <div class="accordion-body">
+                            <div class="form-group">
+                                <label for="title">Titre</label>
+                                <input type="text" class="form-control" id="title" name="title" value="{{ article.title if article else '' }}" required>
                             </div>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                {% endif %}
-            </div>
-            
-            <div class="form-group">
-                <label for="images">Images</label>
-                <input type="file" class="form-control" id="images" name="images" accept="image/*" multiple>
-                <small class="form-text text-muted">Vous pouvez sélectionner plusieurs images. Formats acceptés : PNG, JPG, JPEG, GIF</small>
-                
-                {% if article and article.image_path %}
-                <div class="current-images mt-3">
-                    <h5>Images actuelles :</h5>
-                    <div class="image-gallery" id="sortable-gallery">
-                        {% for image_path in article.image_path.split(',') if image_path.strip() %}
-                        <div class="image-item" data-path="{{ image_path }}">
-                            <img src="{{ url_for('uploads.serve_upload', filename=image_path.replace('uploads/', '')) }}" alt="Image de l'article">
-                            <button type="button" class="btn btn-danger btn-sm remove-image" 
-                                    data-path="{{ image_path }}"
-                                    title="Supprimer l'image">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            <div class="image-handle">
-                                <i class="fas fa-grip-vertical"></i>
+                            
+                            <div class="form-group">
+                                <label for="category_id">Catégorie</label>
+                                <select class="form-control" id="category_id" name="category_id" required>
+                                    <option value="">Sélectionner une catégorie</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category.id }}" {% if article and article.category_id == category.id %}selected{% endif %}>
+                                        {{ category.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
                             </div>
                         </div>
-                        {% endfor %}
                     </div>
-                    <input type="hidden" name="existing_images" id="existing-images" value="{{ article.image_path }}">
                 </div>
-                {% endif %}
-            </div>
-            
-            <div class="form-group">
-                <label for="video">Vidéo de l'article</label>
-                <input type="file" class="form-control" id="video" name="video" accept="video/*">
-                {% if article and article.video_path %}
-                <div class="mt-3">
-                    <h5>Vidéo actuelle :</h5>
-                    <video controls class="article-video" style="width: 100%; max-height: 300px;">
-                        <source src="{{ url_for('uploads.serve_upload', filename=article.video_path.replace('uploads/', '')) }}" type="video/mp4">
-                        Votre navigateur ne supporte pas la lecture de vidéos.
-                    </video>
+
+                <!-- Section Contenu -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingContent">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseContent" aria-expanded="true" aria-controls="collapseContent">
+                            <i class="fas fa-edit me-2"></i> Contenu de l'article
+                        </button>
+                    </h2>
+                    <div id="collapseContent" class="accordion-collapse collapse show" aria-labelledby="headingContent" data-bs-parent="#articleAccordion">
+                        <div class="accordion-body content-group">
+                            <label for="content">Contenu</label>
+                            <!-- Barre d'outils pour CodeMirror -->
+                            <div class="editor-toolbar">
+                                <button type="button" id="toggle-mode" title="Basculer entre mode texte et code">
+                                    <i class="fas fa-code"></i> Mode Code
+                                </button>
+                                <select id="language-select">
+                                    <option value="markdown">Markdown</option>
+                                    <option value="python">Python</option>
+                                    <option value="dax">DAX</option>
+                                    <option value="sql">SQL</option>
+                                    <option value="javascript">JavaScript</option>
+                                    <option value="html">HTML</option>
+                                    <option value="css">CSS</option>
+                                    <option value="json">JSON</option>
+                                    <option value="powershell">PowerShell</option>
+                                    <option value="bash">Bash</option>
+                                </select>
+                                <button type="button" id="insert-code-block" title="Insérer un bloc de code">
+                                    <i class="fas fa-terminal"></i> Code
+                                </button>
+                                <button type="button" id="insert-link" title="Insérer un lien">
+                                    <i class="fas fa-link"></i> Lien
+                                </button>
+                                <button type="button" id="insert-image" title="Insérer une image">
+                                    <i class="fas fa-image"></i> Image
+                                </button>
+                            </div>
+                            <!-- Div pour CodeMirror -->
+                            <div id="editor"></div>
+                            <!-- Textarea caché pour stocker le contenu -->
+                            <textarea style="display: none;" id="content" name="content">{{ article.content if article else '' }}</textarea>
+                        </div>
+                    </div>
                 </div>
-                {% endif %}
-                <small class="text-muted">Formats acceptés : MP4, AVI, MOV, WMV, FLV, WEBM, MKV<br>Taille maximale : 500 MB</small>
+
+                <!-- Section Documents -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingDocuments">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDocuments" aria-expanded="false" aria-controls="collapseDocuments">
+                            <i class="fas fa-file-alt me-2"></i> Documents
+                        </button>
+                    </h2>
+                    <div id="collapseDocuments" class="accordion-collapse collapse" aria-labelledby="headingDocuments" data-bs-parent="#articleAccordion">
+                        <div class="accordion-body">
+                            <div class="form-group">
+                                <label for="documents">Documents (PDF, Word, Excel, etc.)</label>
+                                <input type="file" class="form-control" id="documents" name="documents" multiple 
+                                       accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+                                {% if article and article.documents %}
+                                <div class="mt-3">
+                                    <h5>Documents actuels :</h5>
+                                    <ul class="list-group">
+                                        {% for doc in article.documents %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>
+                                                <i class="fas fa-file me-2"></i>
+                                                {{ doc.original_filename }}
+                                            </span>
+                                            <div>
+                                                <a href="{{ url_for('uploads.serve_upload', filename=doc.filename) }}" 
+                                                   class="btn btn-sm btn-primary me-2" target="_blank">
+                                                    <i class="fas fa-download"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-danger" 
+                                                        onclick="deleteDocument('{{ doc.id }}')"
+                                                        title="Supprimer le document">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Images -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingImages">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseImages" aria-expanded="false" aria-controls="collapseImages">
+                            <i class="fas fa-images me-2"></i> Images
+                        </button>
+                    </h2>
+                    <div id="collapseImages" class="accordion-collapse collapse" aria-labelledby="headingImages" data-bs-parent="#articleAccordion">
+                        <div class="accordion-body">
+                            <div class="form-group">
+                                <label for="images">Images</label>
+                                <input type="file" class="form-control" id="images" name="images" accept="image/*" multiple>
+                                <small class="form-text text-muted">Vous pouvez sélectionner plusieurs images. Formats acceptés : PNG, JPG, JPEG, GIF</small>
+                                
+                                {% if article and article.image_path %}
+                                <div class="current-images mt-3">
+                                    <h5>Images actuelles :</h5>
+                                    <div class="image-gallery" id="sortable-gallery">
+                                        {% for image_path in article.image_path.split(',') if image_path.strip() %}
+                                        <div class="image-item" data-path="{{ image_path }}">
+                                            <img src="{{ url_for('uploads.serve_upload', filename=image_path.replace('uploads/', '')) }}" alt="Image de l'article">
+                                            <button type="button" class="btn btn-danger btn-sm remove-image" 
+                                                    data-path="{{ image_path }}"
+                                                    title="Supprimer l'image">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                            <div class="image-handle">
+                                                <i class="fas fa-grip-vertical"></i>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <input type="hidden" name="existing_images" id="existing-images" value="{{ article.image_path }}">
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Vidéo -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingVideo">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseVideo" aria-expanded="false" aria-controls="collapseVideo">
+                            <i class="fas fa-video me-2"></i> Vidéo
+                        </button>
+                    </h2>
+                    <div id="collapseVideo" class="accordion-collapse collapse" aria-labelledby="headingVideo" data-bs-parent="#articleAccordion">
+                        <div class="accordion-body">
+                            <div class="form-group">
+                                <label for="video">Vidéo de l'article</label>
+                                <input type="file" class="form-control" id="video" name="video" accept="video/*">
+                                {% if article and article.video_path %}
+                                <div class="mt-3">
+                                    <h5>Vidéo actuelle :</h5>
+                                    <video controls class="article-video" style="width: 100%; max-height: 300px;">
+                                        <source src="{{ url_for('uploads.serve_upload', filename=article.video_path.replace('uploads/', '')) }}" type="video/mp4">
+                                        Votre navigateur ne supporte pas la lecture de vidéos.
+                                    </video>
+                                </div>
+                                {% endif %}
+                                <small class="text-muted">Formats acceptés : MP4, AVI, MOV, WMV, FLV, WEBM, MKV<br>Taille maximale : 500 MB</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <div class="form-actions">
@@ -416,249 +638,153 @@ window.deleteDocument = function(documentId) {
 
 {% block extra_js %}
 {{ super() }}
-<script src="https://cdn.quilljs.com/1.3.6/quill.js" referrerpolicy="origin"></script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<!-- CodeMirror 5 (plus stable avec CDN) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/monokai.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Configuration de Quill avec bouton personnalisé pour les blocs de code
-    var quill = new Quill('#editor', {
-        theme: 'snow',
-        modules: {
-            toolbar: [
-                [{ 'header': [1, 2, 3, false] }],
-                ['bold', 'italic', 'underline', 'strike'],
-                ['blockquote', 'code-block'],
-                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                [{ 'align': [] }],
-                ['link', 'image'],
-                ['code-language'], // Bouton personnalisé
-                ['clean']
-            ]
+    let editor;
+    let currentMode = 'markdown';
+    let isCodeMode = false;
+
+    // Fonction pour créer l'éditeur
+    function createEditor(mode = 'markdown') {
+        const editorElement = document.getElementById('editor');
+        
+        // Configuration de CodeMirror 5
+        const config = {
+            lineNumbers: true,
+            theme: isCodeMode ? 'monokai' : 'default',
+            mode: mode,
+            indentUnit: 4,
+            tabSize: 4,
+            lineWrapping: true,
+            autofocus: true,
+            value: document.getElementById('content').value || '',
+            viewportMargin: Infinity,
+            autoRefresh: true
+        };
+
+        // Créer l'éditeur
+        editor = CodeMirror(editorElement, config);
+        
+        // Écouter les changements
+        editor.on('change', function() {
+            document.getElementById('content').value = editor.getValue();
+        });
+        
+        // Redimensionner automatiquement l'éditeur avec taille fixe
+        function resizeEditor() {
+            editor.setSize(null, '400px');
+        }
+        
+        // Redimensionner immédiatement
+        setTimeout(resizeEditor, 100);
+        
+        // Gérer le redimensionnement de la fenêtre
+        window.addEventListener('resize', function() {
+            const isMobile = window.innerWidth <= 768;
+            const isTablet = window.innerWidth <= 1200;
+            
+            if (isMobile) {
+                editor.setSize(null, '250px');
+            } else if (isTablet) {
+                editor.setSize(null, '300px');
+            } else {
+                editor.setSize(null, '400px');
+            }
+        });
+    }
+
+    // Initialiser l'éditeur
+    createEditor();
+
+    // Gestionnaire pour le changement de mode
+    document.getElementById('language-select').addEventListener('change', function() {
+        const newMode = this.value;
+        if (newMode !== currentMode) {
+            currentMode = newMode;
+            editor.setOption('mode', newMode);
         }
     });
 
-    // Ajouter le bouton personnalisé pour les langages de code
-    var toolbar = quill.getModule('toolbar');
-    toolbar.addHandler('code-language', function() {
-        // Créer un modal pour choisir le langage
-        const modal = document.createElement('div');
-        modal.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        `;
+    // Gestionnaire pour basculer entre mode texte et code
+    document.getElementById('toggle-mode').addEventListener('click', function() {
+        isCodeMode = !isCodeMode;
+        const button = this;
         
-        const modalContent = document.createElement('div');
-        modalContent.style.cssText = `
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            max-width: 400px;
-            width: 90%;
-        `;
+        if (isCodeMode) {
+            button.innerHTML = '<i class="fas fa-file-alt"></i> Mode Texte';
+            button.classList.add('active');
+            editor.setOption('theme', 'monokai');
+        } else {
+            button.innerHTML = '<i class="fas fa-code"></i> Mode Code';
+            button.classList.remove('active');
+            editor.setOption('theme', 'default');
+        }
+    });
+
+    // Gestionnaire pour insérer un bloc de code
+    document.getElementById('insert-code-block').addEventListener('click', function() {
+        const language = document.getElementById('language-select').value;
+        const codeBlock = `\`\`\`${language}\n// Votre code ici\n\`\`\`\n\n`;
         
-        modalContent.innerHTML = `
-            <h3 style="margin-top: 0; margin-bottom: 15px;">Choisir le langage de code</h3>
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px;">Langage :</label>
-                <select id="languageSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <option value="python">Python</option>
-                    <option value="dax">DAX (Power BI)</option>
-                    <option value="sql">SQL</option>
-                    <option value="javascript">JavaScript</option>
-                    <option value="html">HTML</option>
-                    <option value="css">CSS</option>
-                    <option value="powershell">PowerShell</option>
-                    <option value="bash">Bash/Shell</option>
-                    <option value="json">JSON</option>
-                </select>
-            </div>
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px;">Code :</label>
-                <textarea id="codeInput" style="width: 100%; height: 150px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;" placeholder="Collez votre code ici..."></textarea>
-            </div>
-            <div style="text-align: right;">
-                <button id="cancelBtn" style="margin-right: 10px; padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Annuler</button>
-                <button id="insertBtn" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Insérer</button>
-            </div>
-        `;
+        const cursor = editor.getCursor();
+        editor.replaceRange(codeBlock, cursor);
         
-        modal.appendChild(modalContent);
-        document.body.appendChild(modal);
-        
-        // Gestion des événements
-        document.getElementById('cancelBtn').onclick = function() {
-            document.body.removeChild(modal);
+        // Positionner le curseur dans le bloc de code
+        const newCursor = {
+            line: cursor.line + 1,
+            ch: 0
         };
+        editor.setCursor(newCursor);
+        editor.focus();
+    });
+
+    // Gestionnaire pour insérer un lien
+    document.getElementById('insert-link').addEventListener('click', function() {
+        const linkText = prompt('Texte du lien:');
+        const linkUrl = prompt('URL du lien:');
         
-        document.getElementById('insertBtn').onclick = function() {
-            const language = document.getElementById('languageSelect').value;
-            const code = document.getElementById('codeInput').value;
-            
-            if (code.trim()) {
-                // Insérer le bloc de code avec la bonne classe
-                const range = quill.getSelection();
-                const codeBlock = `<pre><code class="language-${language}">${code}</code></pre>`;
-                quill.clipboard.dangerouslyPasteHTML(range.index, codeBlock);
-            }
-            
-            document.body.removeChild(modal);
-        };
+        if (linkText && linkUrl) {
+            const linkMarkdown = `[${linkText}](${linkUrl})`;
+            const cursor = editor.getCursor();
+            editor.replaceRange(linkMarkdown, cursor);
+            editor.focus();
+        }
+    });
+
+    // Gestionnaire pour insérer une image
+    document.getElementById('insert-image').addEventListener('click', function() {
+        const imageAlt = prompt('Texte alternatif de l\'image:');
+        const imageUrl = prompt('URL de l\'image:');
         
-        // Fermer avec Escape
-        modal.onclick = function(e) {
-            if (e.target === modal) {
-                document.body.removeChild(modal);
-            }
-        };
-        
-        // Focus sur le textarea
-        setTimeout(() => {
-            document.getElementById('codeInput').focus();
-        }, 100);
+        if (imageAlt && imageUrl) {
+            const imageMarkdown = `![${imageAlt}](${imageUrl})`;
+            const cursor = editor.getCursor();
+            editor.replaceRange(imageMarkdown, cursor);
+            editor.focus();
+        }
     });
 
     // Synchronisation avec le textarea caché
-    var form = document.querySelector('form');
-    var contentInput = document.querySelector('#content');
-
-    // Initialiser Quill avec le contenu existant
-    if (contentInput.value) {
-        quill.root.innerHTML = contentInput.value;
-    }
+    const form = document.querySelector('form');
+    const contentInput = document.querySelector('#content');
 
     // Mettre à jour le textarea avant la soumission du formulaire
-    form.onsubmit = function() {
-        contentInput.value = quill.root.innerHTML;
+    form.addEventListener('submit', function() {
+        contentInput.value = editor.getValue();
         return true;
-    };
-
-    // Gestion des images
-    var imageHandler = function() {
-        const input = document.createElement('input');
-        input.setAttribute('type', 'file');
-        input.setAttribute('accept', 'image/*');
-        input.click();
-
-        input.onchange = function() {
-            const file = input.files[0];
-            if (file) {
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('csrf_token', '{{ csrf_token() }}');
-
-                fetch('{{ url_for("upload_image") }}', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token() }}'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.location) {
-                        const range = quill.getSelection(true);
-                        quill.insertEmbed(range.index, 'image', data.location);
-                    }
-                })
-                .catch(error => {
-                    console.error('Erreur lors de l\'upload de l\'image:', error);
-                });
-            }
-        };
-    };
-
-    // Ajouter le gestionnaire d'images à la barre d'outils
-    var toolbar = quill.getModule('toolbar');
-    toolbar.addHandler('image', imageHandler);
-
-    // Gestion de la galerie d'images
-    const gallery = document.getElementById('sortable-gallery');
-    if (gallery) {
-        new Sortable(gallery, {
-            animation: 150,
-            handle: '.image-handle',
-            ghostClass: 'sortable-ghost',
-            chosenClass: 'sortable-chosen',
-            onEnd: function() {
-                const images = Array.from(gallery.getElementsByClassName('image-item'))
-                    .map(item => item.dataset.path);
-                document.getElementById('existing-images').value = images.join(',');
-            }
-        });
-    }
-
-    // Gestion de la suppression d'images
-    document.querySelectorAll('.remove-image').forEach(button => {
-        button.addEventListener('click', function() {
-            if (confirm('Êtes-vous sûr de vouloir supprimer cette image ?')) {
-                const imagePath = this.dataset.path;
-                const existingImages = document.getElementById('existing-images').value.split(',');
-                const newImages = existingImages.filter(path => path !== imagePath);
-                document.getElementById('existing-images').value = newImages.join(',');
-                this.closest('.image-item').remove();
-            }
-        });
     });
-    
-    // Gestion de la vidéo
-    const videoInput = document.getElementById('video');
-    if (videoInput) {
-        // Créer un conteneur pour la prévisualisation
-        const videoPreviewContainer = document.createElement('div');
-        videoPreviewContainer.id = 'video-preview-container';
-        videoPreviewContainer.style.marginTop = '10px';
-        videoInput.parentNode.appendChild(videoPreviewContainer);
-
-        videoInput.addEventListener('change', function() {
-            videoPreviewContainer.innerHTML = '';
-            if (this.files && this.files[0]) {
-                const file = this.files[0];
-                const maxSize = 500 * 1024 * 1024; // 500MB
-                
-                // Vérifier la taille du fichier
-                if (file.size > maxSize) {
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'alert alert-danger mt-2';
-                    errorDiv.innerHTML = `
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>Fichier trop volumineux !</strong><br>
-                        Taille du fichier : ${(file.size / (1024 * 1024)).toFixed(2)} MB<br>
-                        Taille maximale autorisée : 500 MB<br>
-                        <small>Veuillez compresser votre vidéo ou choisir un fichier plus petit.</small>
-                    `;
-                    videoPreviewContainer.appendChild(errorDiv);
-                    return;
-                }
-                
-                // Afficher les informations du fichier
-                const infoDiv = document.createElement('div');
-                infoDiv.className = 'alert alert-info mt-2';
-                infoDiv.innerHTML = `
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>Fichier sélectionné :</strong> ${file.name}<br>
-                    <small>Taille : ${(file.size / (1024 * 1024)).toFixed(2)} MB</small>
-                `;
-                videoPreviewContainer.appendChild(infoDiv);
-                
-                // Prévisualisation de la vidéo
-                const video = document.createElement('video');
-                video.className = 'article-video';
-                video.controls = true;
-                video.style.maxHeight = '200px';
-                video.src = URL.createObjectURL(file);
-                videoPreviewContainer.appendChild(video);
-            }
-        });
-    }
 });
 </script>
-{% endblock %} 
+{% endblock %}
