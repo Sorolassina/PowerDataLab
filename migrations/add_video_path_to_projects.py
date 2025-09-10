@@ -2,6 +2,9 @@
 Migration pour ajouter le champ video_path à la table projects
 Exécuter ce script pour mettre à jour la base de données existante
 """
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlalchemy import text
 from models.base import engine, SessionLocal
