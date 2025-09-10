@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, g, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, g, current_app, jsonify
 from models.category import Category
 from models.article import Article
 from models.page_view import PageView
@@ -8,11 +8,29 @@ from flask_mail import Message
 import os
 from slugify import slugify
 from models.base import SessionLocal  # Import ajouté
+from markupsafe import Markup
+import re
+from bs4 import BeautifulSoup
 from utils.decorateur import login_required, admin_required
 from schema_pydantic.schemas_pda import NewsletterForm
 
 
 category_bp = Blueprint('category', __name__)
+
+def clean(html_content, strip=False):
+    """Fonction pour nettoyer le contenu HTML"""
+    if not html_content:
+        return ""
+    
+    # Utiliser BeautifulSoup pour nettoyer le HTML
+    soup = BeautifulSoup(html_content, 'html.parser')
+    
+    if strip:
+        # Supprimer toutes les balises HTML et retourner le texte brut
+        return soup.get_text()
+    else:
+        # Retourner le HTML nettoyé
+        return str(soup)
 
 @category_bp.route('/category/<slug>')
 def category(slug):
@@ -22,6 +40,35 @@ def category(slug):
         return redirect(url_for('index'))
         
     articles = g.db.query(Article).filter_by(category_id=category.id).order_by(Article.created_at.desc()).all()
+    
+    # Créer des excerpts pour les articles
+    articles_with_excerpts = []
+    import re
+    from bs4 import BeautifulSoup
+    
+    for article in articles:
+        # Nettoyer le HTML et créer un excerpt
+        clean_content = clean(article.content, strip=True)
+        
+        # Supprimer les balises HTML pour compter les caractères
+        text_only = re.sub(r'<[^>]+>', '', clean_content)
+        text_only = re.sub(r'\s+', ' ', text_only).strip()
+        
+        # Si le texte est plus long que 200 caractères, tronquer et ajouter ...
+        if len(text_only) > 200:
+            truncated_text = text_only[:200]
+            last_space = truncated_text.rfind(' ')
+            if last_space > 150:
+                truncated_text = truncated_text[:last_space]
+            excerpt = truncated_text + '...'
+        else:
+            excerpt = text_only
+        
+        # Ajouter l'excerpt à l'objet article
+        article.excerpt = excerpt
+        # S'assurer que video_path est accessible
+        article.video_path = article.video_path
+        articles_with_excerpts.append(article)
     
     # Charger toutes les catégories avec leur nombre d'articles
     categories = g.db.query(Category).all()
@@ -69,7 +116,7 @@ def category(slug):
     
     return render_template('category.html', 
                          category=category, 
-                         articles=articles, 
+                         articles=articles_with_excerpts, 
                          categories=categories,
                          newsletter_form=newsletter_form)
 
@@ -163,7 +210,7 @@ def new_category():
             
             if not name or not color_theme:
                 flash('Le nom et la couleur sont requis', 'error')
-                return redirect(url_for('manage_categories'))
+                return redirect(url_for('category.manage_categories'))
             
             try:
                 slug = slugify(name)
@@ -177,17 +224,17 @@ def new_category():
                 g.db.commit()
                 
                 flash('Catégorie créée avec succès', 'success')
-                return redirect(url_for('manage_categories'))
+                return redirect(url_for('category.manage_categories'))
             except Exception as e:
                 g.db.rollback()
                 print(f"Erreur lors de la création: {str(e)}")
                 flash('Erreur lors de la création de la catégorie', 'error')
-                return redirect(url_for('manage_categories'))
+                return redirect(url_for('category.manage_categories'))
                 
         except Exception as e:
             print(f"Erreur lors du traitement POST: {str(e)}")
             flash('Erreur lors de la création de la catégorie', 'error')
-            return redirect(url_for('manage_categories'))
+            return redirect(url_for('category.manage_categories'))
     
     # Pour les requêtes GET, on affiche simplement le formulaire
     return render_template('admin/manage_categories.html')
@@ -215,12 +262,12 @@ def edit_category(category_id):
             
             if not name or not color_theme:
                 flash('Le nom et la couleur sont requis', 'error')
-                return redirect(url_for('manage_categories'))
+                return redirect(url_for('category.manage_categories'))
             
             category = g.db.query(Category).filter_by(id=category_id).first()
             if category is None:
                 flash('Catégorie non trouvée', 'error')
-                return redirect(url_for('manage_categories'))
+                return redirect(url_for('category.manage_categories'))
             
             try:
                 category.name = name
@@ -230,24 +277,34 @@ def edit_category(category_id):
                 g.db.commit()
                 
                 flash('Catégorie mise à jour avec succès', 'success')
-                return redirect(url_for('manage_categories'))
+                return redirect(url_for('category.manage_categories'))
             except Exception as e:
                 g.db.rollback()
                 print(f"Erreur lors de la mise à jour: {str(e)}")
                 flash('Erreur lors de la mise à jour de la catégorie', 'error')
-                return redirect(url_for('manage_categories'))
+                return redirect(url_for('category.manage_categories'))
                 
         except Exception as e:
             g.db.rollback()
             print(f"Erreur lors de la mise à jour: {str(e)}")
             flash('Erreur lors de la mise à jour de la catégorie', 'error')
-            return redirect(url_for('manage_categories'))
+            return redirect(url_for('category.manage_categories'))
     
     # Pour les requêtes GET, on récupère la catégorie
     category = g.db.query(Category).get(category_id)
     if not category:
         flash('Catégorie non trouvée.', 'error')
-        return redirect(url_for('manage_categories'))
+        return redirect(url_for('category.manage_categories'))
+    
+    # Vérifier si la requête demande du JSON (pour l'API)
+    if request.headers.get('Accept') == 'application/json':
+        return jsonify({
+            'id': category.id,
+            'name': category.name,
+            'color': category.color_theme,
+            'description': category.description or '',
+            'slug': category.slug
+        })
     
     # Vérifier si la catégorie a des articles associés
     has_articles = g.db.query(Article).filter_by(category_id=category_id).first() is not None
@@ -265,12 +322,12 @@ def delete_category_route(category_id):
         category = g.db.query(Category).get(category_id)
         if not category:
             flash('Catégorie non trouvée.', 'error')
-            return redirect(url_for('manage_categories'))
+            return redirect(url_for('category.manage_categories'))
         
         # Vérifier si la catégorie a des articles associés
         if category.articles:
             flash('Impossible de supprimer une catégorie qui contient des articles.', 'error')
-            return redirect(url_for('manage_categories'))
+            return redirect(url_for('category.manage_categories'))
         
         g.db.delete(category)
         g.db.commit()
@@ -279,4 +336,4 @@ def delete_category_route(category_id):
         g.db.rollback()
         flash(f'Erreur lors de la suppression de la catégorie: {str(e)}', 'error')
     
-    return redirect(url_for('manage_categories'))
+    return redirect(url_for('category.manage_categories'))

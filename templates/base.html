@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.tiny.cloud https://cdn.quilljs.com https://code.jquery.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.quilljs.com; img-src 'self' data: blob:; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://use.fontawesome.com; connect-src 'self' https://cdn.jsdelivr.net https://code.jquery.com; font-src-elem 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://use.fontawesome.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.tiny.cloud https://cdn.quilljs.com https://code.jquery.com https://platform.linkedin.com https://static.licdn.com https://cdnjs.cloudflare.com https://badges.linkedin.com; script-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.tiny.cloud https://cdn.quilljs.com https://code.jquery.com https://platform.linkedin.com https://static.licdn.com https://cdnjs.cloudflare.com https://badges.linkedin.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.quilljs.com https://platform.linkedin.com https://static.licdn.com; img-src 'self' data: blob: https:; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://use.fontawesome.com; connect-src 'self' https://cdn.jsdelivr.net https://code.jquery.com https://platform.linkedin.com https://static.licdn.com https://badges.linkedin.com;">
     <title>{% block title %}Powerdataanalytics{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Prism.js pour la coloration syntaxique -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
     <style>
     /* Styles globaux qui s'appliquent à toutes les pages */
     body {
@@ -252,7 +255,7 @@
                 <img src="{{ url_for('static', filename='image/Profil.jpg') }}" alt="Profile" class="profile-picture me-3">
                 <a class="navbar-brand" href="{{ url_for('main.index') }}">Powerdatanalytics</a>
             </div>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Basculer le menu de navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -305,39 +308,38 @@
             {% endwith %}
 
             {% block header %}
-            <div class="page-header">
-                Le monde du travail exige plus de rapidité, d’automatisation et de valorisation des données. C’est là qu’intervient la Power Platform, la solution low-code de Microsoft.
-Explorons ensemble les 4 outils qui la composent — Power Apps, Power BI, Power Automate et SharePoint — et comment ils transforment concrètement les usages en entreprise.
-                <div class="header-content">
-                    {% if request.endpoint == 'category' %}
-                        <div class="category-header">
-                            <h1>{{ category.name }}</h1>
-                            {% if category.description %}
-                            <p class="lead">{{ category.description }}</p>
-                            {% endif %}
+            <!-- <div class="page-header">
+                
+            </div> -->
+            <div class="header-content">
+                {% if request.endpoint == 'category' %}
+                    <div class="category-header">
+                        <h1>{{ category.name }}</h1>
+                        {% if category.description %}
+                        <p class="lead">{{ category.description }}</p>
+                        {% endif %}
+                    </div>
+                {% elif request.endpoint == 'article' %}
+                    <div class="article-header">
+                        <h1>{{ article.title }}</h1>
+                        <div class="article-meta">
+                            <span class="article-author">
+                                <i class="fas fa-user"></i> {{ article.author_name }}
+                            </span>
+                            <span class="article-date">
+                                <i class="fas fa-calendar"></i> {{ article.created_at_formatted }}
+                            </span>
+                            <span class="article-category">
+                                <i class="fas fa-folder"></i> 
+                                <a href="{{ url_for('category.category', slug=article.category_slug) }}" class="category-link category-badge" data-color="{{ article.color_theme }}">
+                                    {{ article.category_name }}
+                                </a>
+                            </span>
                         </div>
-                    {% elif request.endpoint == 'article' %}
-                        <div class="article-header">
-                            <h1>{{ article.title }}</h1>
-                            <div class="article-meta">
-                                <span class="article-author">
-                                    <i class="fas fa-user"></i> {{ article.author_name }}
-                                </span>
-                                <span class="article-date">
-                                    <i class="fas fa-calendar"></i> {{ article.created_at_formatted }}
-                                </span>
-                                <span class="article-category">
-                                    <i class="fas fa-folder"></i> 
-                                    <a href="{{ url_for('category.category', slug=article.category_slug) }}" class="category-link category-badge" data-color="{{ article.color_theme }}">
-                                        {{ article.category_name }}
-                                    </a>
-                                </span>
-                            </div>
-                        </div>
-                    {% else %}
-                        <h1>{% block page_title %}{% endblock %}</h1>
-                    {% endif %}
-                </div>
+                    </div>
+                {% else %}
+                    <h1>{% block page_title %}{% endblock %}</h1>
+                {% endif %}
             </div>
             {% endblock %}
 
@@ -353,6 +355,11 @@ Explorons ensemble les 4 outils qui la composent — Power Apps, Power BI, Power
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Prism.js pour la coloration syntaxique -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <!-- Script LinkedIn Badge -->
+    <script src="https://platform.linkedin.com/badges/js/profile.js" async defer></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html> 

@@ -29,10 +29,11 @@
         <div class="col-md-8">
             <div class="btn-group" role="group">
                 <button type="button" class="btn btn-outline-primary active" data-filter="all">Tous</button>
-                <button type="button" class="btn btn-outline-primary" data-filter="power-bi">Power BI</button>
-                <button type="button" class="btn btn-outline-primary" data-filter="power-apps">Power Apps</button>
-                <button type="button" class="btn btn-outline-primary" data-filter="power-automate">Power Automate</button>
-                <button type="button" class="btn btn-outline-primary" data-filter="sharepoint">SharePoint</button>
+                {% for category in categories %}
+                <button type="button" class="btn btn-outline-primary" data-filter="{{ category.slug }}" style="border-color: {{ category.color_theme }};">
+                    {{ category.name }}
+                </button>
+                {% endfor %}
             </div>
         </div>
         <div class="col-md-4">
@@ -49,11 +50,16 @@
     <div class="row" id="projectsGrid">
         {% for project in projects %}
         <div class="col-md-6 col-lg-4 mb-4 project-card" 
-             data-category="{{ project.category }}"
+             data-category="{{ project.category_slug }}"
              data-project-id="{{ project.id }}">
             <div class="card h-100">
-                <!-- Image principale du projet -->
-                {% if project.image_path %}
+                <!-- Image ou vidéo principale du projet -->
+                {% if project.video_path %}
+                <video class="card-img-top project-image" controls>
+                    <source src="{{ url_for('uploads.serve_upload', filename=project.video_path.replace('uploads/', '')) }}" type="video/mp4">
+                    Votre navigateur ne supporte pas la lecture de vidéos.
+                </video>
+                {% elif project.image_path %}
                 <img src="{{ url_for('uploads.serve_upload', filename=project.image_path.replace('uploads/', '')) }}" 
                      class="card-img-top project-image" 
                      alt="{{ project.title }}">
@@ -289,6 +295,73 @@
     transform: translateY(-5px);
 }
 
+/* Styles pour les boutons de catégories */
+.btn-group .btn[data-filter] {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    border-radius: 25px !important;
+    padding: 0.5rem 1.2rem;
+    font-weight: 500;
+}
+
+.btn-group .btn[data-filter]:not(.active):hover {
+    background: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05)) !important;
+    border-width: 2px !important;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+    color: #000 !important;
+}
+
+.btn-group .btn[data-filter]:not(.active):hover::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn-group .btn[data-filter]:not(.active):hover::before {
+    left: 100%;
+}
+
+.btn-group .btn[data-filter].active {
+    background: linear-gradient(135deg, var(--category-color, #007bff), var(--category-color, #0056b3)) !important;
+    color: white !important;
+    border-width: 2px !important;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transform: scale(1.02);
+}
+
+.btn-group .btn[data-filter].active:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+/* Style spécifique pour le bouton "Tous" */
+.btn-group .btn[data-filter="all"] {
+    color: #000;
+}
+
+.btn-group .btn[data-filter="all"].active {
+    background: linear-gradient(135deg, #007bff, #0056b3) !important;
+    color: white !important;
+}
+
+/* Style général pour tous les boutons de catégories */
+.btn-group .btn[data-filter]:not([data-filter="all"]) {
+    color: #000 !important;
+}
+
+.btn-group .btn[data-filter]:not([data-filter="all"]):hover {
+    color: #000 !important;
+}
+
 /* Styles pour le contenu Quill */
 .quill-content {
     font-size: 0.95rem;
@@ -341,6 +414,12 @@
     padding: 10px;
     border-top-left-radius: 8px;
     border-top-right-radius: 8px;
+}
+
+.project-image video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 .card {
@@ -636,6 +715,14 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('resize', function() {
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(checkContentOverflow, 250);
+    });
+    
+    // Définir les couleurs des catégories pour les boutons actifs
+    document.querySelectorAll('.btn[data-filter]:not([data-filter="all"])').forEach(button => {
+        const borderColor = button.style.borderColor;
+        if (borderColor) {
+            button.style.setProperty('--category-color', borderColor);
+        }
     });
 });
 </script>

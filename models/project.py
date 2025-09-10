@@ -37,6 +37,7 @@ class Project(Base):
     category = Column(String(50), nullable=False)
     category_color = Column(String(20), default='primary')
     image_path = Column(String(255))
+    video_path = Column(String(255))  # Nouveau champ pour les vidéos
     demo_url = Column(String(255))
     github_url = Column(String(255))
     documentation_url = Column(String(255))

@@ -95,6 +95,7 @@ def article(slug):
         'slug': article_query.Article.slug,
         'content': article_query.Article.content,
         'image_path': article_query.Article.image_path,
+        'video_path': article_query.Article.video_path,
         'created_at': article_query.Article.created_at,
         'created_at_formatted': article_query.created_at_formatted,
         'category_name': article_query.category_name,
@@ -208,13 +209,30 @@ def new_article():
                 files = request.files.getlist('images')
                 image_paths = save_files(files, 'image')
             
+            # Gestion de la vidéo
+            video_path = None
+            if 'video' in request.files and request.files['video'].filename:
+                video_file = request.files['video']
+                if video_file and video_file.filename:
+                    # Vérifier la taille du fichier (500MB max)
+                    video_file.seek(0, 2)  # Aller à la fin du fichier
+                    file_size = video_file.tell()
+                    video_file.seek(0)  # Retourner au début
+                    
+                    if file_size > 500 * 1024 * 1024:  # 500MB
+                        flash('La vidéo est trop volumineuse. Taille maximale autorisée : 500 MB', 'error')
+                        return render_template('admin/article_form.html', categories=categories)
+                    
+                    video_path = save_file(video_file, 'video')
+            
             article = Article(
                 title=title,
                 slug=slug,
                 content=content,
                 category_id=category_id,
                 author_id=current_user.id,
-                image_path=','.join(image_paths) if image_paths else None
+                image_path=','.join(image_paths) if image_paths else None,
+                video_path=video_path
             )
             g.db.add(article)
             g.db.flush()  # Pour obtenir l'ID de l'article
@@ -264,6 +282,25 @@ def edit_article(article_id):
             image_paths.extend(new_paths)
         
         article.image_path = ','.join(image_paths) if image_paths else None
+        
+        # Gestion de la vidéo
+        if 'video' in request.files and request.files['video'].filename:
+            video_file = request.files['video']
+            if video_file and video_file.filename:
+                # Vérifier la taille du fichier (500MB max)
+                video_file.seek(0, 2)  # Aller à la fin du fichier
+                file_size = video_file.tell()
+                video_file.seek(0)  # Retourner au début
+                
+                if file_size > 500 * 1024 * 1024:  # 500MB
+                    flash('La vidéo est trop volumineuse. Taille maximale autorisée : 500 MB', 'error')
+                    return render_template('admin/article_form.html', article=article, categories=categories)
+                
+                # Supprimer l'ancienne vidéo si elle existe
+                if article.video_path:
+                    delete_file(os.path.basename(article.video_path))
+                # Sauvegarder la nouvelle vidéo
+                article.video_path = save_file(video_file, 'video')
         
         # Gérer l'upload des documents
         if 'documents' in request.files:

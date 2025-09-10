@@ -7,7 +7,14 @@
     <div class="col-md-8">
         {% for article in articles %}
         <article class="card mb-4">
-            {% if article.image_path %}
+            {% if article.video_path %}
+            <div class="card-media">
+                <video autoplay muted loop class="card-video">
+                    <source src="{{ url_for('uploads.serve_upload', filename=article.video_path.replace('uploads/', '')) }}" type="video/mp4">
+                    Votre navigateur ne supporte pas la lecture de vidéos.
+                </video>
+            </div>
+            {% elif article.image_path %}
             <img src="{{ url_for('uploads.serve_upload', filename=article.image_path.replace('uploads/', '')) }}" class="card-img-top" alt="{{ article.title }}">
             {% endif %}
             <div class="card-body">
@@ -167,11 +174,13 @@
     line-height: 1.6;
 }
 
-.read-more {
-    display: inline-block;
-    color: #007bff;
-    text-decoration: none;
-    font-weight: 500;
+.card-text {
+    color: #666;
+    line-height: 1.6;
+    text-align: justify;
+    hyphens: auto;
+    word-wrap: break-word;
+    margin-bottom: 1rem;
 }
 
 .read-more:hover {
@@ -196,6 +205,18 @@
     .articles-grid {
         grid-template-columns: repeat(3, 1fr);
     }
+}
+
+.card-media {
+    position: relative;
+    height: 250px;
+    overflow: hidden;
+}
+
+.card-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 </style>
 {% endblock %}

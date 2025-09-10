@@ -25,6 +25,14 @@ def projects():
     projects = g.db.query(Project).all()
     categories = g.db.query(Category).all()
     form = DeleteForm()
+    
+    # Créer un dictionnaire pour mapper les noms de catégories aux slugs
+    category_slug_map = {cat.name: cat.slug for cat in categories}
+    
+    # Ajouter le slug de catégorie à chaque projet
+    for project in projects:
+        project.category_slug = category_slug_map.get(project.category, project.category.lower().replace(' ', '-'))
+    
     return render_template('projects.html', projects=projects, categories=categories, form=form)
 
 # Créer un nouveau projet
@@ -44,6 +52,22 @@ def new_project():
             if form.image.data:
                 image_path = save_file(form.image.data, 'image')
 
+            # Gestion de la vidéo
+            video_path = None
+            if 'video' in request.files and request.files['video'].filename:
+                video_file = request.files['video']
+                if video_file and video_file.filename:
+                    # Vérifier la taille du fichier (100MB max)
+                    video_file.seek(0, 2)  # Aller à la fin du fichier
+                    file_size = video_file.tell()
+                    video_file.seek(0)  # Retourner au début
+                    
+                    if file_size > 500 * 1024 * 1024:  # 500MB
+                        flash('La vidéo est trop volumineuse. Taille maximale autorisée : 500 MB', 'error')
+                        return render_template('admin/project_form.html', form=form)
+                    
+                    video_path = save_file(video_file, 'video')
+
             # Création du projet
             project = Project(
                 title=form.title.data,
@@ -51,6 +75,7 @@ def new_project():
                 category=form.category.data,
                 category_color=form.category_color.data or 'primary',
                 image_path=image_path,
+                video_path=video_path,
                 demo_url=form.demo_url.data,
                 github_url=form.github_url.data,
                 technologies=form.technologies.data,
@@ -114,6 +139,25 @@ def edit_project(project_id):
                     delete_file(os.path.basename(project.image_path))
                 # Sauvegarder la nouvelle image
                 project.image_path = save_file(form.image.data, 'image')
+
+            # Gestion de la vidéo
+            if 'video' in request.files and request.files['video'].filename:
+                video_file = request.files['video']
+                if video_file and video_file.filename:
+                    # Vérifier la taille du fichier (100MB max)
+                    video_file.seek(0, 2)  # Aller à la fin du fichier
+                    file_size = video_file.tell()
+                    video_file.seek(0)  # Retourner au début
+                    
+                    if file_size > 500 * 1024 * 1024:  # 500MB
+                        flash('La vidéo est trop volumineuse. Taille maximale autorisée : 500 MB', 'error')
+                        return render_template('admin/project_form.html', form=form, project=project)
+                    
+                    # Supprimer l'ancienne vidéo si elle existe
+                    if project.video_path:
+                        delete_file(os.path.basename(project.video_path))
+                    # Sauvegarder la nouvelle vidéo
+                    project.video_path = save_file(video_file, 'video')
 
             # Mise à jour des autres champs
             project.title = form.title.data

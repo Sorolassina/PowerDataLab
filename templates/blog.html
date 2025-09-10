@@ -34,7 +34,14 @@
             <div class="articles-grid">
                 {% for article in articles %}
                 <article class="article-card">
-                    {% if article.image_path %}
+                    {% if article.video_path %}
+                    <div class="article-media">
+                        <video autoplay muted loop class="article-video">
+                            <source src="{{ url_for('uploads.serve_upload', filename=article.video_path.replace('uploads/', '')) }}" type="video/mp4">
+                            Votre navigateur ne supporte pas la lecture de vidéos.
+                        </video>
+                    </div>
+                    {% elif article.image_path %}
                     <div class="article-image">
                         <img src="{{ url_for('uploads.serve_upload', filename=article.image_path.split(',')[0].replace('uploads/', '')) }}" alt="{{ article.title }}">
                     </div>
@@ -106,6 +113,18 @@
     object-fit: cover;
 }
 
+.article-media {
+    height: 300px;
+    overflow: hidden;
+    position: relative;
+}
+
+.article-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 .article-content {
     padding: 1.5rem;
 }
@@ -144,6 +163,9 @@
     margin-bottom: 1.5rem;
     line-height: 1.6;
     font-size: 1.1rem;
+    text-align: justify;
+    hyphens: auto;
+    word-wrap: break-word;
 }
 
 .read-more {

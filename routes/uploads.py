@@ -2,7 +2,7 @@ from flask import Blueprint, send_from_directory, current_app, request
 import os
 from datetime import datetime
 from werkzeug.utils import secure_filename
-from utils.verif_image import allowed_file
+from utils.verif_image import allowed_file, allowed_video_file
 
 uploads_bp = Blueprint('uploads', __name__)
 
@@ -13,11 +13,12 @@ def allowed_document(filename):
 
 def save_file(file, file_type='image'):
     """Fonction générique pour sauvegarder un fichier
-    file_type peut être 'image' ou 'document'
+    file_type peut être 'image', 'video' ou 'document'
     Retourne le chemin relatif du fichier sauvegardé
     """
     if file and file.filename:
         if (file_type == 'image' and allowed_file(file.filename)) or \
+           (file_type == 'video' and allowed_video_file(file.filename)) or \
            (file_type == 'document' and allowed_document(file.filename)):
             filename = secure_filename(file.filename)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')

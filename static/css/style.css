@@ -20,12 +20,15 @@ body {
     padding-top: 76px;
     padding-bottom: 60px; /* Espace pour le footer fixe */
     min-height: 100vh;
+    display: -ms-flexbox; /* IE 10+ */
     display: flex;
+    -ms-flex-direction: column; /* IE 10+ */
     flex-direction: column;
 }
 
 /* Main content wrapper */
 .main-content {
+    -ms-flex: 1 0 auto; /* IE 10+ */
     flex: 1 0 auto;
     width: 100%;
 }

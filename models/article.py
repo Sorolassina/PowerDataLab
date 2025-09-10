@@ -13,6 +13,7 @@ class Article(Base):
     category_id = Column(Integer, ForeignKey('categories.id', ondelete='CASCADE'))
     author_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'))
     image_path = Column(Text)
+    video_path = Column(Text)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
 

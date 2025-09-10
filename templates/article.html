@@ -7,13 +7,22 @@
     <div class="row">
         <div class="col-12">
             <article class="blog-post">
-                {% if article['image_path'] %}
+                <!--{% if article['image_path'] %}
                 <div class="article-images mb-4">
                     {% for image_path in article['image_path'].split(',') %}
                     <div class="text-center mb-4">
                         <img src="{{ url_for('uploads.serve_upload', filename=image_path.replace('uploads/', '')) }}" class="img-fluid rounded" alt="{{ article['title'] }}">
                     </div>
                     {% endfor %}
+                </div>
+                {% endif %}-->
+
+                {% if article['video_path'] %}
+                <div class="article-video mb-4">
+                    <video controls class="video-player" style="width: 100%; max-height: 500px;">
+                        <source src="{{ url_for('uploads.serve_upload', filename=article.video_path.replace('uploads/', '')) }}" type="video/mp4">
+                        Votre navigateur ne supporte pas la lecture de vidéos.
+                    </video>
                 </div>
                 {% endif %}
 
@@ -39,7 +48,7 @@
                     <h4 class="mb-3"><i class="fas fa-file-alt"></i> Documents associés</h4>
                     <div class="list-group">
                         {% for doc in article['documents'] %}
-                        <a href="{{ url_for('uploads.serve_upload', filename=doc.file_path.replace('uploads/', '')) }}" 
+                        <a href="{{ url_for('uploads.serve_upload', filename=doc.filename) }}" 
                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                            target="_blank"
                            title="Télécharger {{ doc.original_filename }}">
@@ -406,6 +415,109 @@
     border-radius: 4px;
     margin: 0.5rem 0;
 }
+
+/* Styles pour la coloration syntaxique avec Prism.js */
+.prose pre[class*="language-"] {
+    background-color: #2d3748;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #4a5568;
+}
+
+.prose code[class*="language-"] {
+    font-family: 'Fira Code', 'Monaco', 'Consolas', 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #e2e8f0;
+}
+
+.prose pre[class*="language-"] code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    font-size: inherit;
+}
+
+/* Styles pour les blocs de code inline */
+.prose code:not([class*="language-"]) {
+    background-color: #f1f5f9;
+    color: #e53e3e;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'Fira Code', 'Monaco', 'Consolas', 'Courier New', monospace;
+    font-size: 0.85em;
+}
+
+/* Styles spécifiques pour DAX */
+.prose pre[class*="language-dax"] {
+    background-color: #1a202c;
+    border-left: 4px solid #f6ad55;
+}
+
+/* Styles spécifiques pour Python */
+.prose pre[class*="language-python"] {
+    background-color: #1a202c;
+    border-left: 4px solid #68d391;
+}
+
+/* Styles spécifiques pour SQL */
+.prose pre[class*="language-sql"] {
+    background-color: #1a202c;
+    border-left: 4px solid #63b3ed;
+}
+
+/* Styles spécifiques pour HTML/CSS */
+.prose pre[class*="language-markup"],
+.prose pre[class*="language-css"] {
+    background-color: #1a202c;
+    border-left: 4px solid #f687b3;
+}
+
+/* Styles spécifiques pour JavaScript */
+.prose pre[class*="language-javascript"] {
+    background-color: #1a202c;
+    border-left: 4px solid #fbb6ce;
+}
+
+/* Styles spécifiques pour PowerShell */
+.prose pre[class*="language-powershell"] {
+    background-color: #1a202c;
+    border-left: 4px solid #9f7aea;
+}
+
+/* Styles spécifiques pour Bash */
+.prose pre[class*="language-bash"] {
+    background-color: #1a202c;
+    border-left: 4px solid #38b2ac;
+}
+
+/* Styles spécifiques pour JSON */
+.prose pre[class*="language-json"] {
+    background-color: #1a202c;
+    border-left: 4px solid #ed8936;
+}
+
+/* Amélioration de la lisibilité */
+.prose pre[class*="language-"]::-webkit-scrollbar {
+    height: 8px;
+}
+
+.prose pre[class*="language-"]::-webkit-scrollbar-track {
+    background: #2d3748;
+    border-radius: 4px;
+}
+
+.prose pre[class*="language-"]::-webkit-scrollbar-thumb {
+    background: #4a5568;
+    border-radius: 4px;
+}
+
+.prose pre[class*="language-"]::-webkit-scrollbar-thumb:hover {
+    background: #718096;
+}
 </style>
 {% endblock %}
 
@@ -432,6 +544,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         });
     }
+    
+    // Initialiser Prism.js pour la coloration syntaxique
+    if (typeof Prism !== 'undefined') {
+        Prism.highlightAll();
+    }
 });
 </script>
 {% endblock %}
@@ -447,9 +564,17 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .article-images img {
-    max-width: 100%;
+    max-width: 60%;
+    max-height: 100px;
     height: auto;
     margin-bottom: 1rem;
+    object-fit: cover;
+}
+
+.video-player {
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    background-color: #000;
 }
 
 .article-tags {

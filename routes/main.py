@@ -112,17 +112,28 @@ def index():
     
     # Transformer les résultats en dictionnaires pour faciliter l'accès dans le template
     articles_list = []
-    h = html2text.HTML2Text()
-    h.ignore_links = True
-    h.ignore_images = True
     
     for article_row in articles:
-        # Nettoyer le HTML et convertir en texte brut
+        # Nettoyer le HTML
         clean_content = clean(article_row.Article.content, strip=True)
-        plain_text = h.handle(clean_content)
         
-        # Créer le résumé
-        excerpt = plain_text[:200] + '...' if len(plain_text) > 200 else plain_text
+        # Créer un excerpt HTML propre (premiers 200 caractères de texte visible)
+        import re
+        # Supprimer les balises HTML pour compter les caractères
+        text_only = re.sub(r'<[^>]+>', '', clean_content)
+        text_only = re.sub(r'\s+', ' ', text_only).strip()
+        
+        # Si le texte est plus long que 200 caractères, tronquer et ajouter ...
+        if len(text_only) > 200:
+            # Trouver la position de troncature dans le texte original
+            truncated_text = text_only[:200]
+            # Trouver le dernier espace pour éviter de couper un mot
+            last_space = truncated_text.rfind(' ')
+            if last_space > 150:  # Si on trouve un espace pas trop loin
+                truncated_text = truncated_text[:last_space]
+            excerpt = truncated_text + '...'
+        else:
+            excerpt = text_only
         
         article_dict = {
             'id': article_row.Article.id,
@@ -131,6 +142,7 @@ def index():
             'content': article_row.Article.content,
             'excerpt': excerpt,
             'image_path': article_row.Article.image_path,
+            'video_path': article_row.Article.video_path,
             'created_at': article_row.Article.created_at,
             'created_at_formatted': article_row.created_at_formatted,
             'category_name': article_row.category_name,

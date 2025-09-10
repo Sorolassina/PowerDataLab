@@ -2,7 +2,7 @@ from flask import Flask,  request,  url_for,  session, jsonify,  g
 from flask_login import LoginManager,  login_required
 from werkzeug.utils import secure_filename
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_mail import Mail
 from dotenv import load_dotenv
 from flask_wtf import FlaskForm
@@ -36,18 +36,34 @@ if os.environ.get('FLASK_ENV') == 'production':
 else:
     UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'uploads')
 
-app.config.update(
-    SECRET_KEY=os.environ.get('SECRET_KEY', 'your-secret-key-here'),
-    UPLOAD_FOLDER=UPLOAD_FOLDER,
-    MAX_CONTENT_LENGTH=16 * 1024 * 1024,  # 16MB max file size
-    WTF_CSRF_ENABLED=True,
-    MAIL_SERVER=os.environ.get('MAIL_SERVER', 'smtp.gmail.com'),
-    MAIL_PORT=int(os.environ.get('MAIL_PORT', 587)),
-    MAIL_USE_TLS=os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true',
-    MAIL_USERNAME=os.environ.get('MAIL_USERNAME'),
-    MAIL_PASSWORD=os.environ.get('MAIL_PASSWORD'),
-    MAIL_DEFAULT_SENDER=os.environ.get('MAIL_DEFAULT_SENDER')
-)
+# Configuration de base
+base_config = {
+    'SECRET_KEY': os.environ.get('SECRET_KEY', 'your-secret-key-here'),
+    'UPLOAD_FOLDER': UPLOAD_FOLDER,
+    'MAX_CONTENT_LENGTH': 500 * 1024 * 1024,  # 500MB max file size pour supporter les vidéos
+    'WTF_CSRF_ENABLED': True,
+    'MAIL_SERVER': os.environ.get('MAIL_SERVER', 'smtp.gmail.com'),
+    'MAIL_PORT': int(os.environ.get('MAIL_PORT', 587)),
+    'MAIL_USE_TLS': os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true',
+    'MAIL_USERNAME': os.environ.get('MAIL_USERNAME'),
+    'MAIL_PASSWORD': os.environ.get('MAIL_PASSWORD'),
+    'MAIL_DEFAULT_SENDER': os.environ.get('MAIL_DEFAULT_SENDER'),
+    # Configuration de la session
+    'PERMANENT_SESSION_LIFETIME': timedelta(days=7),  # La session dure 7 jours
+    'SESSION_COOKIE_HTTPONLY': True,  # Cookie de session inaccessible en JavaScript
+    'SESSION_COOKIE_SAMESITE': 'Lax',  # Protection contre les attaques CSRF
+    # Configuration CSRF
+    'WTF_CSRF_TIME_LIMIT': None,  # Le token CSRF n'expire pas
+}
+
+# Ajouter les configurations spécifiques à la production
+if os.environ.get('FLASK_ENV') == 'production':
+    base_config.update({
+        'SESSION_COOKIE_SECURE': True,  # Cookie de session uniquement en HTTPS
+        'WTF_CSRF_SSL_STRICT': True  # Vérifie que le token vient d'une connexion HTTPS
+    })
+
+app.config.update(base_config)
 
 # Configuration CSRF
 csrf = CSRFProtect(app)
@@ -138,6 +154,8 @@ def before_request():
     print(f"[DEBUG] Form data: {request.form}")
     print(f"[DEBUG] CSRF Token from form: {request.form.get('csrf_token')}")
     print(f"[DEBUG] Session CSRF token: {session.get('csrf_token')}")
+    # Rendre la session permanente
+    session.permanent = True
     g.db = SessionLocal()
 
 @app.after_request

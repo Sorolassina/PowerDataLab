@@ -7,9 +7,30 @@ from flask import current_app, g
 # Fonction pour vérifier les extensions de fichiers autorisées
 def allowed_file(filename):
     """Vérifie si l'extension du fichier est autorisée"""
-    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'}
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def allowed_image_file(filename):
+    """Vérifie si l'extension du fichier est une image autorisée"""
+    ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
+
+def allowed_video_file(filename):
+    """Vérifie si l'extension du fichier est une vidéo autorisée"""
+    ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv'}
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_VIDEO_EXTENSIONS
+
+def get_file_type(filename):
+    """Détermine le type de fichier (image ou vidéo)"""
+    if allowed_image_file(filename):
+        return 'image'
+    elif allowed_video_file(filename):
+        return 'video'
+    else:
+        return 'unknown'
 
 def clean_duplicate_images():
     """Nettoie les images en double dans le dossier uploads."""

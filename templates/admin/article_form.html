@@ -114,6 +114,30 @@
     border-bottom-right-radius: 4px;
 }
 
+/* Style pour le bouton personnalisé de code */
+.ql-toolbar .ql-code-language {
+    background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIgM0gxNFY1SDJWM1oiIGZpbGw9IiM2NjY2NjYiLz4KPHA+PHBhdGggZD0iTTIgN0gxNFY5SDJWN1oiIGZpbGw9IiM2NjY2NjYiLz4KPHA+PHBhdGggZD0iTTIgMTFIMTRWMTNIMkgxMVoiIGZpbGw9IiM2NjY2NjYiLz4KPC9zdmc+') no-repeat center;
+    background-size: 16px 16px;
+    width: 28px;
+    height: 28px;
+    border: none;
+    cursor: pointer;
+}
+
+.ql-toolbar .ql-code-language:hover {
+    background-color: #f0f0f0;
+    border-radius: 3px;
+}
+
+.ql-toolbar .ql-code-language:before {
+    content: "{}";
+    font-family: monospace;
+    font-weight: bold;
+    color: #666;
+    font-size: 14px;
+    line-height: 28px;
+}
+
 /* Styles pour la galerie d'images */
 .image-gallery {
     display: grid;
@@ -169,6 +193,13 @@
 
 .image-item.sortable-chosen {
     box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+.article-video {
+    width: 100%;
+    max-height: 300px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .form-text {
@@ -256,7 +287,7 @@
                                 {{ doc.original_filename }}
                             </span>
                             <div>
-                                <a href="{{ url_for('uploads.serve_upload', filename=doc.file_path.replace('uploads/', '')) }}" 
+                                <a href="{{ url_for('uploads.serve_upload', filename=doc.filename) }}" 
                                    class="btn btn-sm btn-primary me-2" target="_blank">
                                     <i class="fas fa-download"></i>
                                 </a>
@@ -299,6 +330,21 @@
                     <input type="hidden" name="existing_images" id="existing-images" value="{{ article.image_path }}">
                 </div>
                 {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="video">Vidéo de l'article</label>
+                <input type="file" class="form-control" id="video" name="video" accept="video/*">
+                {% if article and article.video_path %}
+                <div class="mt-3">
+                    <h5>Vidéo actuelle :</h5>
+                    <video controls class="article-video" style="width: 100%; max-height: 300px;">
+                        <source src="{{ url_for('uploads.serve_upload', filename=article.video_path.replace('uploads/', '')) }}" type="video/mp4">
+                        Votre navigateur ne supporte pas la lecture de vidéos.
+                    </video>
+                </div>
+                {% endif %}
+                <small class="text-muted">Formats acceptés : MP4, AVI, MOV, WMV, FLV, WEBM, MKV<br>Taille maximale : 500 MB</small>
             </div>
             
             <div class="form-actions">
@@ -374,7 +420,7 @@ window.deleteDocument = function(documentId) {
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Configuration de Quill
+    // Configuration de Quill avec bouton personnalisé pour les blocs de code
     var quill = new Quill('#editor', {
         theme: 'snow',
         modules: {
@@ -385,9 +431,99 @@ document.addEventListener('DOMContentLoaded', function() {
                 [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                 [{ 'align': [] }],
                 ['link', 'image'],
+                ['code-language'], // Bouton personnalisé
                 ['clean']
             ]
         }
+    });
+
+    // Ajouter le bouton personnalisé pour les langages de code
+    var toolbar = quill.getModule('toolbar');
+    toolbar.addHandler('code-language', function() {
+        // Créer un modal pour choisir le langage
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = `
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 90%;
+        `;
+        
+        modalContent.innerHTML = `
+            <h3 style="margin-top: 0; margin-bottom: 15px;">Choisir le langage de code</h3>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px;">Langage :</label>
+                <select id="languageSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="python">Python</option>
+                    <option value="dax">DAX (Power BI)</option>
+                    <option value="sql">SQL</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                    <option value="powershell">PowerShell</option>
+                    <option value="bash">Bash/Shell</option>
+                    <option value="json">JSON</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px;">Code :</label>
+                <textarea id="codeInput" style="width: 100%; height: 150px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;" placeholder="Collez votre code ici..."></textarea>
+            </div>
+            <div style="text-align: right;">
+                <button id="cancelBtn" style="margin-right: 10px; padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Annuler</button>
+                <button id="insertBtn" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Insérer</button>
+            </div>
+        `;
+        
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+        
+        // Gestion des événements
+        document.getElementById('cancelBtn').onclick = function() {
+            document.body.removeChild(modal);
+        };
+        
+        document.getElementById('insertBtn').onclick = function() {
+            const language = document.getElementById('languageSelect').value;
+            const code = document.getElementById('codeInput').value;
+            
+            if (code.trim()) {
+                // Insérer le bloc de code avec la bonne classe
+                const range = quill.getSelection();
+                const codeBlock = `<pre><code class="language-${language}">${code}</code></pre>`;
+                quill.clipboard.dangerouslyPasteHTML(range.index, codeBlock);
+            }
+            
+            document.body.removeChild(modal);
+        };
+        
+        // Fermer avec Escape
+        modal.onclick = function(e) {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        };
+        
+        // Focus sur le textarea
+        setTimeout(() => {
+            document.getElementById('codeInput').focus();
+        }, 100);
     });
 
     // Synchronisation avec le textarea caché
@@ -472,6 +608,57 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    
+    // Gestion de la vidéo
+    const videoInput = document.getElementById('video');
+    if (videoInput) {
+        // Créer un conteneur pour la prévisualisation
+        const videoPreviewContainer = document.createElement('div');
+        videoPreviewContainer.id = 'video-preview-container';
+        videoPreviewContainer.style.marginTop = '10px';
+        videoInput.parentNode.appendChild(videoPreviewContainer);
+
+        videoInput.addEventListener('change', function() {
+            videoPreviewContainer.innerHTML = '';
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                const maxSize = 500 * 1024 * 1024; // 500MB
+                
+                // Vérifier la taille du fichier
+                if (file.size > maxSize) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'alert alert-danger mt-2';
+                    errorDiv.innerHTML = `
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Fichier trop volumineux !</strong><br>
+                        Taille du fichier : ${(file.size / (1024 * 1024)).toFixed(2)} MB<br>
+                        Taille maximale autorisée : 500 MB<br>
+                        <small>Veuillez compresser votre vidéo ou choisir un fichier plus petit.</small>
+                    `;
+                    videoPreviewContainer.appendChild(errorDiv);
+                    return;
+                }
+                
+                // Afficher les informations du fichier
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'alert alert-info mt-2';
+                infoDiv.innerHTML = `
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Fichier sélectionné :</strong> ${file.name}<br>
+                    <small>Taille : ${(file.size / (1024 * 1024)).toFixed(2)} MB</small>
+                `;
+                videoPreviewContainer.appendChild(infoDiv);
+                
+                // Prévisualisation de la vidéo
+                const video = document.createElement('video');
+                video.className = 'article-video';
+                video.controls = true;
+                video.style.maxHeight = '200px';
+                video.src = URL.createObjectURL(file);
+                videoPreviewContainer.appendChild(video);
+            }
+        });
+    }
 });
 </script>
 {% endblock %} 
