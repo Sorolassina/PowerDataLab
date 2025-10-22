@@ -263,7 +263,7 @@ if __name__ == '__main__':
         # Initialiser la base de données
         init_db()
     
-    # Déterminer le port en fonction de l'environnement
+   
     port = int(os.getenv('PORT', 8050))
     host = '0.0.0.0' if os.getenv('FLASK_ENV') == 'production' else '127.0.0.1'
     app.run(host=host, port=port, debug=(os.getenv('FLASK_ENV') != 'production'))
